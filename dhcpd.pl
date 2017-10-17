@@ -666,8 +666,6 @@ sub static_data_to_reply {
 
 sub db_get_requested_data {
     logger("Function: db_get_requested_data ");
-    logger($_[1]);
-    logger($_[2]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -677,6 +675,8 @@ sub db_get_requested_data {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     $dhcpreqparams = $_[1]->getOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST());
+    logger("Function: db_get_requested_data $mac");
+    logger("Function: db_get_requested_data $dhcpreqparams");
 
     $sth = $_[0]->prepare(
         "SELECT

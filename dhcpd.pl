@@ -333,7 +333,7 @@ sub thread_exit($) {
     exit($_[0]);
     }
 
-    sub send_reply {
+sub send_reply {
     #my $fromaddr = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -394,9 +394,6 @@ sub thread_exit($) {
         send($SOCKET_RCV, $dhcpresppkt, 0, $ADDR_MIRROR) || logger("send mirr error: $!");
     }
 }
-
-
-
 
 # Generate responce DHCP packet from request DHCP packet
 sub GenDHCPRespPkt {
@@ -505,9 +502,9 @@ sub FormatMAC {
 # http://milanweb.net/uni/old/scripting.html
 sub subnetBits {
     my $m = unpack("N", pack("C4", split(/\./, $_[0]))); # parseIPtoNumber
-
     my $v = pack("L", $m);
     my $bcnt = 0;
+
     foreach (0..31) {
         if (vec($v, $_,1) == 1) {
             $bcnt ++;
@@ -585,17 +582,17 @@ sub handle_request {
     $dhcpresp = GenDHCPRespPkt($_[2]);
 
     if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1) {
-        if ((defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) && $_[2]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) ne $dhcpresp->yiaddr()) ||
-            (defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) == 0 && $_[2]->ciaddr() ne $dhcpresp->yiaddr())) {
+        if ((defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) &&
+        $_[2]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) ne $dhcpresp->yiaddr()) ||
+        (defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) == 0
+        && $_[2]->ciaddr() ne $dhcpresp->yiaddr())) {
             # NAK if requested addr not equal IP addr in DB
             $dhcpresp->ciaddr('0.0.0.0');
             $dhcpresp->yiaddr('0.0.0.0');
             $dhcpresp->{options}->{DHO_DHCP_MESSAGE_TYPE()} = pack('C', DHCPNAK);
-
             db_lease_nak($_[0], $_[2]);
         } else {
             $dhcpresp->{options}->{DHO_DHCP_MESSAGE_TYPE()} = pack('C', DHCPACK);
-
             db_lease_success($_[0], $_[2]);
         }
 
@@ -678,7 +675,18 @@ sub db_get_requested_data {
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     $dhcpreqparams = $_[1]->getOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST());
 
-    $sth = $_[0]->prepare("");
+    $sth = $_[0]->prepare(
+        "SELECT
+            `ip`
+        FROM
+            `clients`
+        WHERE
+            `client_mac` = '$mac'
+        AND
+            `vlan_id` = '$dhcp_opt82_vlan_id'
+        LIMIT 1;
+        "
+    );
     $sth->execute();
     if ($sth->rows()) {
         $result = $sth->fetchrow_hashref();
@@ -690,12 +698,13 @@ sub db_get_requested_data {
         return (1);
     }
 
-    if (GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id)) {
+    if (GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id)) {
         # try work as traditional DHCP: find scope by opt82 info, then give some free addr
 
         if ($dhcp_opt82_chasis_id ne '') {
-            $sth = $_[0]->prepare("
-                SELECT
+            $sth = $_[0]->prepare(
+                "SELECT
                     `dhcp_lease_time`,
                     `dhcp_renewal`,
                     `dhcp_rebind_time`,
@@ -705,12 +714,17 @@ sub db_get_requested_data {
                     `dns2`,
                     `subnet_id`
                     `domain`
-                FROM `subnets` as s
-                WHERE `vlan_id` = '$dhcp_opt82_vlan_id',
-                AND `type` = 'guest'
-                LIMIT 1"
+                FROM
+                    `subnets` as s
+                WHERE
+                    `vlan_id` = '$dhcp_opt82_vlan_id',
+                AND
+                    `type` = 'guest'
+                LIMIT 1
+                "
             );
-        $sth->execute();
+            $sth->execute();
+
             if ($sth->rows()) {
                 $result = $sth->fetchrow_hashref();
 
@@ -835,7 +849,7 @@ sub db_get_routing {
             `gateway`
         FROM `subnets_routes`
         WHERE `subnet_id` = '$_[2]'
-        LIMIT 30
+        LIMIT 30;
         "
     );
 
@@ -943,16 +957,8 @@ sub db_lease_success {
 
     GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
 
-    if (defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER()))) {
-        $dhcp_vendor_class = $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER());
-    } else {
-        $dhcp_vendor_class = '';
-    }
-    if (defined($_[1]->getOptionRaw(DHO_USER_CLASS()))) {
-        $dhcp_user_class = $_[1]->getOptionRaw(DHO_USER_CLASS());
-    } else {
-        $dhcp_user_class = '';
-    }
+    $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
+    $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
 ####
     $sth = $_[0]->prepare("");
     $sth->execute();
@@ -971,36 +977,11 @@ sub db_log_detailed {
     GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
     $client_ip = $_[1]->ciaddr;
     $gateway_ip = $_[1]->giaddr;
-
-    if (defined($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER()))) {
-        $client_ident = BuffToHEX($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER()));
-    } else {
-        $client_ident = '';
-    }
-
-    if (defined($_[1]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS()))) {
-        $requested_ip = $_[1]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS());
-    } else {
-        $requested_ip = '';
-    }
-
-    if (defined($_[1]->getOptionRaw(DHO_HOST_NAME()))) {
-        $hostname = $_[1]->getOptionValue(DHO_HOST_NAME());
-    } else {
-        $hostname = '';
-    }
-
-    if (defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER()))) {
-        $dhcp_vendor_class = $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER());
-    } else {
-        $dhcp_vendor_class = '';
-    }
-
-    if (defined($_[1]->getOptionRaw(DHO_USER_CLASS()))) {
-        $dhcp_user_class = $_[1]->getOptionRaw(DHO_USER_CLASS());
-    } else {
-        $dhcp_user_class = '';
-    }
+    $client_ident = defined($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) ? BuffToHEX($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) : '';
+    $requested_ip = defined($_[1]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) ? $_[1]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) : '';
+    $hostname = defined($_[1]->getOptionRaw(DHO_HOST_NAME())) ? $_[1]->getOptionValue(DHO_HOST_NAME()) : '';
+    $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
+    $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
 
     $sth = $_[0]->prepare(
         "INSERT INTO `dhcp_log`
@@ -1022,11 +1003,9 @@ sub db_log_detailed {
             `dhcp_opt82_unit_id`        = if('$dhcp_opt82_unit_id' = '', `dhcp_opt82_unit_id`, '$dhcp_opt82_unit_id'),
             `dhcp_opt82_port_id`        = if('$dhcp_opt82_port_id' = '', `dhcp_opt82_port_id`, '$dhcp_opt82_port_id'),
             `dhcp_opt82_vlan_id`        = if('$dhcp_opt82_vlan_id' = '', `dhcp_opt82_vlan_id`, '$dhcp_opt82_vlan_id'),
-            `dhcp_opt82_subscriber_id`  = if('$dhcp_opt82_subscriber_id' = '', `dhcp_opt82_subscriber_id`, '$dhcp_opt82_subscriber_id')
+            `dhcp_opt82_subscriber_id`  = if('$dhcp_opt82_subscriber_id' = '', `dhcp_opt82_subscriber_id`, '$dhcp_opt82_subscriber_id');
         "
     );
     $sth->execute();
     $sth->finish();
 }
-
-

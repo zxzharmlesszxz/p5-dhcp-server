@@ -29,7 +29,7 @@ use POSIX qw(setsid setuid strftime :signal_h);
 use Getopt::Long;
 #require 'sys/syscall.ph';
 
-binmode(STDOUT,':utf8');
+binmode(STDOUT, ':utf8');
 
 # settings, via command line or internal defined
 my ($BIND_ADDR, $SERVER_PORT, $CLIENT_PORT, $MIRROR, $DHCP_SERVER_ID, $THREADS_COUNT, $DBDATASOURCE, $DBLOGIN, $DBPASS, $PIDFILE, $DEBUG);
@@ -43,15 +43,17 @@ share($RUNNING);
 &startpoint();
 
 # this keeps the program alive or something after exec'ing perl scripts
-END()   { }
-BEGIN()	{ }
-{no warnings; *CORE::GLOBAL::exit = sub { die "fakeexit\nrc=".shift()."\n"; }; };
+END(){}
+BEGIN(){}
+{
+    no warnings; *CORE::GLOBAL::exit = sub {die "fakeexit\nrc=" . shift() . "\n";};
+};
 eval q{exit};
-if ($@) { exit unless $@ =~ /^fakeexit/; };
+if ($@) {exit unless $@ =~ /^fakeexit/;};
 
 # generic signal handler to cause daemon to stop
 sub signal_handler {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     $RUNNING = 0;
     close($SOCKET_RCV);
     $_->kill('KILL')->detach() foreach threads->list();
@@ -59,45 +61,45 @@ sub signal_handler {
 }
 
 sub startpoint {
-    logger("Function: ".(caller(0))[3]);
-    if ($#ARGV == -1) {
+    logger("Function: " . (caller(0))[3]);
+    if ($#ARGV == - 1) {
         usage();
         return;
     }
 
     # set default settings values
-    $BIND_ADDR		= '0.0.0.0';
-    $SERVER_PORT	= '67';
-    $CLIENT_PORT	= '68';
+    $BIND_ADDR = '0.0.0.0';
+    $SERVER_PORT = '67';
+    $CLIENT_PORT = '68';
     $DHCP_SERVER_ID = ''; # REQUIRED real IP for work!!!
-    $MIRROR			= undef;
-    $DBDATASOURCE	= 'mysql:dhcp:127.0.0.1';
-    $DBLOGIN		= 'dhcp';
-    $DBPASS			= 'dhcp';
-    $THREADS_COUNT	= 4;
-    $PIDFILE		= '/var/run/perl-dhcpd.pid';
-    $DEBUG			= undef;
-    my $DAEMON		= undef;
+    $MIRROR = undef;
+    $DBDATASOURCE = 'mysql:dhcp:127.0.0.1';
+    $DBLOGIN = 'dhcp';
+    $DBPASS = 'dhcp';
+    $THREADS_COUNT = 4;
+    $PIDFILE = '/var/run/perl-dhcpd.pid';
+    $DEBUG = undef;
+    my $DAEMON = undef;
 
     GetOptions(
-        'b=s'	=> \$BIND_ADDR,
-        'sp:i'	=> \$SERVER_PORT,
-        'cp:i'	=> \$CLIENT_PORT,
-        'id=s'	=> \$DHCP_SERVER_ID,
-        'm=s'	=> \$MIRROR,
-        't:i'	=> \$THREADS_COUNT,
-        'dbs=s'	=> \$DBDATASOURCE,
-        'dbl=s'	=> \$DBLOGIN,
-        'dbp=s'	=> \$DBPASS,
-        'P:s'	=> \$PIDFILE,
-        'v:i'	=> \$DEBUG,
-        'd'	    => \$DAEMON,
+        'b=s'   => \$BIND_ADDR,
+        'sp:i'  => \$SERVER_PORT,
+        'cp:i'  => \$CLIENT_PORT,
+        'id=s'  => \$DHCP_SERVER_ID,
+        'm=s'   => \$MIRROR,
+        't:i'   => \$THREADS_COUNT,
+        'dbs=s' => \$DBDATASOURCE,
+        'dbl=s' => \$DBLOGIN,
+        'dbp=s' => \$DBPASS,
+        'P:s'   => \$PIDFILE,
+        'v:i'   => \$DEBUG,
+        'd'     => \$DAEMON,
     );
 
     # untainte input
-    if ($BIND_ADDR =~ /^(.*)$/)		{$BIND_ADDR = $1;}
-    if ($DHCP_SERVER_ID =~ /^(.*)$/)	{$DHCP_SERVER_ID = $1;}
-    if ($PIDFILE =~ /^(.*)$/)		{$PIDFILE = $1;}
+    if ($BIND_ADDR =~ /^(.*)$/) {$BIND_ADDR = $1;}
+    if ($DHCP_SERVER_ID =~ /^(.*)$/) {$DHCP_SERVER_ID = $1;}
+    if ($PIDFILE =~ /^(.*)$/) {$PIDFILE = $1;}
 
     if (defined($DHCP_SERVER_ID) == 0) {
         usage();
@@ -121,7 +123,7 @@ sub startpoint {
 }
 
 sub usage {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     print "Usage: dhcpd [options]\n\n";
     print " -b <ip>		ip address to bind (def: 0.0.0.0)\n";
     print " -sp <port>		port bind (def: 67)\n";
@@ -141,31 +143,31 @@ sub usage {
 
 # sample logger
 sub logger {
-    if (defined($DEBUG) == 0) { return; }
+    if (defined($DEBUG) == 0) {return;}
 
     print STDOUT strftime "[%d/%b/%Y %H:%M:%S] ", localtime;
-    print STDOUT $_[0]."\n";
+    print STDOUT $_[0] . "\n";
 }
 
 sub daemonize {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     delete @ENV{qw(IFS CDPATH ENV BASH_ENV)}; # Make %ENV safer
     #setuid(65534)		or die "Can't set uid: $!\n"; # nobody
 
-    open(STDIN,  "+>/dev/null")	or die "Can't open STDIN: $!\n";
-    open(STDOUT, "+>&STDIN")	or die "Can't open STDOUT: $!\n";
-    open(STDERR, "+>&STDIN")	or die "Can't open STDERR: $!\n";
-    defined(my $tm = fork)	or die "Can't fork: $!\n";
+    open(STDIN, "+>/dev/null") or die "Can't open STDIN: $!\n";
+    open(STDOUT, "+>&STDIN") or die "Can't open STDOUT: $!\n";
+    open(STDERR, "+>&STDIN") or die "Can't open STDERR: $!\n";
+    defined(my $tm = fork) or die "Can't fork: $!\n";
     exit if $tm;
-    setsid				or die "Can't start a new session: $!\n";
+    setsid or die "Can't start a new session: $!\n";
     umask 0;
 
     logger("Daemon mode");
 }
 
 sub main {
-    logger("Function: ".(caller(0))[3]);
-    if (defined($BIND_ADDR) == 0) { return; }
+    logger("Function: " . (caller(0))[3]);
+    if (defined($BIND_ADDR) == 0) {return;}
 
     # write PID to file
     if (defined($PIDFILE)) {
@@ -180,7 +182,7 @@ sub main {
     $ADDR_BCAST = sockaddr_in($CLIENT_PORT, INADDR_BROADCAST);# sockaddr_in($CLIENT_PORT, inet_aton('255.255.255.255'))
 
     # set mirror address if defimed
-    if (defined($MIRROR)) { # traff mirroring
+    if (defined($MIRROR)) {# traff mirroring
         $ADDR_MIRROR = sockaddr_in($SERVER_PORT, inet_aton($MIRROR));
     }
 
@@ -189,8 +191,8 @@ sub main {
     bind($SOCKET_RCV, sockaddr_in($SERVER_PORT, inet_aton($BIND_ADDR))) || die "bind: $!";
 
     # start threads
-    for my $i (1..($THREADS_COUNT - 1)) {
-        threads->create({'context' => 'void'}, \&request_loop);
+    for my $i (1 .. ($THREADS_COUNT - 1)) {
+        threads->create({ 'context' => 'void' }, \&request_loop);
     }
 
     ### Collect the bits and pieces! ...
@@ -209,7 +211,7 @@ sub main {
 }
 
 sub request_loop {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     my ($buf, $fromaddr, $dhcpreq); # recv data
     my $dbh; # database connect
     my ($t0, $t1, $td); # perfomance data
@@ -220,7 +222,7 @@ sub request_loop {
     # each thread make its own connection to DB
     # connect($data_source, $username, $password, \%attr)
     # dbi:DriverName:database=database_name;host=hostname;port=port
-    $dbh = DBI->connect("DBI:".$DBDATASOURCE, $DBLOGIN, $DBPASS);
+    $dbh = DBI->connect("DBI:" . $DBDATASOURCE, $DBLOGIN, $DBPASS);
 
     if (defined($dbh) == 0) {
         logger("Could not connect to database: $DBI::errstr");
@@ -229,12 +231,11 @@ sub request_loop {
 
     $dbh->{mysql_auto_reconnect} = 1;
 
-
     if ($tid != 0) {
         # disable signals receiving on creted threads and set handler for KILL signal
         my $sigset = POSIX::SigSet->new(SIGINT, SIGTERM, SIGHUP);    # define the signals to block
         my $old_sigset = POSIX::SigSet->new;        # where the old sigmask will be kept
-        unless (defined sigprocmask(SIG_BLOCK, $sigset, $old_sigset)) { die "Could not unblock SIGINT\n"; }
+        unless (defined sigprocmask(SIG_BLOCK, $sigset, $old_sigset)) {die "Could not unblock SIGINT\n";}
 
         $SIG{KILL} = sub {
             logger("Thread ($tid): END by sig handler");
@@ -246,7 +247,8 @@ sub request_loop {
     while ($RUNNING == 1) {
         $buf = undef;
 
-        eval { # catch fatal errors
+        eval {
+            # catch fatal errors
             # receive packet
             $fromaddr = recv($SOCKET_RCV, $buf, 16384, 0) || logger("Thread ($tid) recv err: $!");
 
@@ -284,7 +286,7 @@ sub request_loop {
             if (defined($DEBUG)) {
                 my ($port, $addr) = unpack_sockaddr_in($fromaddr);
                 my $ipaddr = inet_ntoa($addr);
-                    logger("Thread $tid: Got a packet src = $ipaddr:$port length = ".length($buf));
+                logger("Thread $tid: Got a packet src = $ipaddr:$port length = " . length($buf));
                 if ($DEBUG > 1) {
                     logger($dhcpreq->toString());
                 }
@@ -292,32 +294,35 @@ sub request_loop {
 
             # handle packet
             switch ($dhcpreq->getOptionValue(DHO_DHCP_MESSAGE_TYPE())) {
-            case DHCPDISCOVER { #-> DHCPOFFER
-                db_log_detailed($dbh, $dhcpreq);
-                handle_discover($dbh, $fromaddr, $dhcpreq);
-                }
-            case DHCPREQUEST { #-> DHCPACK/DHCPNAK
-                db_log_detailed($dbh, $dhcpreq);
-                handle_request($dbh, $fromaddr, $dhcpreq);
-                }
-            case DHCPDECLINE {
-                db_log_detailed($dbh, $dhcpreq);
-                handle_decline($dbh, $fromaddr, $dhcpreq);
-                }
-            case DHCPRELEASE {
-                db_log_detailed($dbh, $dhcpreq);
-                handle_release($dbh, $fromaddr, $dhcpreq);
-                }
-            case DHCPINFORM { #-> DHCPACK
-                db_log_detailed($dbh, $dhcpreq);
-                handle_inform($dbh, $fromaddr, $dhcpreq);
-                }
+                case DHCPDISCOVER {
+                            #-> DHCPOFFER
+                            db_log_detailed($dbh, $dhcpreq);
+                            handle_discover($dbh, $fromaddr, $dhcpreq);
+                        }
+                        case DHCPREQUEST {
+                                    #-> DHCPACK/DHCPNAK
+                                    db_log_detailed($dbh, $dhcpreq);
+                                    handle_request($dbh, $fromaddr, $dhcpreq);
+                                }
+                                case DHCPDECLINE {
+                                            db_log_detailed($dbh, $dhcpreq);
+                                            handle_decline($dbh, $fromaddr, $dhcpreq);
+                                        }
+                                        case DHCPRELEASE {
+                                                    db_log_detailed($dbh, $dhcpreq);
+                                                    handle_release($dbh, $fromaddr, $dhcpreq);
+                                                }
+                                                case DHCPINFORM {
+                                                            #-> DHCPACK
+                                                            db_log_detailed($dbh, $dhcpreq);
+                                                            handle_inform($dbh, $fromaddr, $dhcpreq);
+                                                        }
             }
 
             if (defined($DEBUG)) {
                 $t1 = Benchmark->new;
                 $td = timediff($t1, $t0);
-                logger("Thread $tid: the code took: ".timestr($td));
+                logger("Thread $tid: the code took: " . timestr($td));
             }
         }; # end of 'eval' blocks
         if ($@) {
@@ -331,17 +336,17 @@ sub request_loop {
 }
 
 sub thread_exit($) {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     my $tid = threads->tid(); # thread ID
 
-    logger("Thread ($tid): END code: ".$_[0]);
+    logger("Thread ($tid): END code: " . $_[0]);
 
     threads->exit($_[0]) if threads->can('exit');
     exit($_[0]);
-    }
+}
 
 sub send_reply {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $fromaddr = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -359,31 +364,37 @@ sub send_reply {
 
     if ($_[1]->giaddr() eq '0.0.0.0') {
         # client local, not relayed
-        if ($_[2]->DHO_DHCP_MESSAGE_TYPE() == DHCPNAK) { # allways broadcast DHCPNAK
+        if ($_[2]->DHO_DHCP_MESSAGE_TYPE() == DHCPNAK) {# allways broadcast DHCPNAK
             $toaddr = $ADDR_BCAST;
-        } else {
+        }
+        else {
             if ($_[1]->ciaddr() eq '0.0.0.0') {
                 # ALL HERE NON RFC 2131 4.1 COMPLIANT!!!
                 # perl can not send to hw addr unicaset with ip 0.0.0.0, and we send broadcast
-                if ($_[1]->flags() == 0 || 1) { # send unicast XXXXXXXXX - flags ignored!
+                if ($_[1]->flags() == 0 || 1) {
+                    # send unicast XXXXXXXXX - flags ignored!
                     # here we mast send unicast to hw addr, ip 0.0.0.0
                     my ($port, $addr) = unpack_sockaddr_in($_[0]);
                     my $ipaddr = inet_ntoa($addr);
 
                     if ($ipaddr eq '0.0.0.0') {
                         $toaddr = $ADDR_BCAST;
-                    } else { # giaddr and ciaddr is zero but we know ip addr from received packet
+                    }
+                    else {# giaddr and ciaddr is zero but we know ip addr from received packet
                         $toaddr = sockaddr_in($CLIENT_PORT, $addr);
                     }
-                } else {
+                }
+                else {
                     # only this comliant to rfc 2131 4.1
                     $toaddr = $ADDR_BCAST;
                 }
-            } else { # client have IP addr, send unicast
+            }
+            else {# client have IP addr, send unicast
                 $toaddr = sockaddr_in($CLIENT_PORT, $_[1]->ciaddrRaw());
             }
         }
-    } else { # send to relay
+    }
+    else {# send to relay
         $toaddr = sockaddr_in($SERVER_PORT, $_[1]->giaddrRaw());
     }
     send($SOCKET_RCV, $dhcpresppkt, 0, $toaddr) || logger("send error: $!");
@@ -391,7 +402,7 @@ sub send_reply {
     if (defined($DEBUG)) {
         my ($port, $addr) = unpack_sockaddr_in($toaddr);
         my $ipaddr = inet_ntoa($addr);
-            logger("Sending response to = $ipaddr:$port length = ".length($dhcpresppkt));
+        logger("Sending response to = $ipaddr:$port length = " . length($dhcpresppkt));
         if ($DEBUG > 1) {
             logger($_[2]->toString());
         }
@@ -405,29 +416,29 @@ sub send_reply {
 
 # Generate responce DHCP packet from request DHCP packet
 sub GenDHCPRespPkt {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dhcpreq = $_[0];
 
     my $dhcpresp = new Net::DHCP::Packet(Op => BOOTREPLY(),
-        Htype => $_[0]->htype(),
-        Hlen => $_[0]->hlen(),
-        # Hops => $_[0]->hops(), # - not copyed in responce
-        Xid => $_[0]->xid(),
-        Secs => $_[0]->secs(),
-        Flags => $_[0]->flags(),
-        Ciaddr => $_[0]->ciaddr(),
-        #Yiaddr => '0.0.0.0',
-        Siaddr => $_[0]->siaddr(),
-        Giaddr => $_[0]->giaddr(),
-        Chaddr => $_[0]->chaddr(),
-        DHO_DHCP_MESSAGE_TYPE() => DHCPACK, # must be owerwritten
-        DHO_DHCP_SERVER_IDENTIFIER() => $DHCP_SERVER_ID
+            Htype                           => $_[0]->htype(),
+            Hlen                            => $_[0]->hlen(),
+            # Hops                          => $_[0]->hops(), # - not copyed in responce
+            Xid                             => $_[0]->xid(),
+            Secs                            => $_[0]->secs(),
+            Flags                           => $_[0]->flags(),
+            Ciaddr                          => $_[0]->ciaddr(),
+            #Yiaddr                         => '0.0.0.0',
+            Siaddr                          => $_[0]->siaddr(),
+            Giaddr                          => $_[0]->giaddr(),
+            Chaddr                          => $_[0]->chaddr(),
+            DHO_DHCP_MESSAGE_TYPE()         => DHCPACK, # must be owerwritten
+            DHO_DHCP_SERVER_IDENTIFIER()    => $DHCP_SERVER_ID
         );
     return ($dhcpresp);
-    }
+}
 
 sub BuffToHEX($) {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     my $buf = shift;
 
     #$buf =~ s/([[:^print:]])/ sprintf q[\x%02X], ord $1 /eg;  # printable text
@@ -438,12 +449,12 @@ sub BuffToHEX($) {
 
 # convert RelayAgent options to human readable
 sub unpackRelayAgent(%) {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     my @SubOptions = @_;
     my $buf;
 
-    for (my $i = 0; defined($SubOptions[$i]); $i += 2){
-        $buf .= "($SubOptions[$i])=".BuffToHEX($SubOptions[($i+1)]).', ';
+    for (my $i = 0; defined($SubOptions[$i]); $i += 2) {
+        $buf .= "($SubOptions[$i])=" . BuffToHEX($SubOptions[($i + 1)]) . ', ';
     }
 
     return ($buf);
@@ -451,7 +462,7 @@ sub unpackRelayAgent(%) {
 
 # get relay agent options from dhcp packet
 sub GetRelayAgentOptions($$$$$$) {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dhcpreq = $_[0];
     #my $dhcp_opt82_vlan_id = $_[1];
     #my $dhcp_opt82_unit_id = $_[2];
@@ -474,38 +485,41 @@ sub GetRelayAgentOptions($$$$$$) {
 
     @RelayAgent = $_[0]->decodeRelayAgent($_[0]->getOptionRaw(DHO_DHCP_AGENT_OPTIONS()));
 
-    logger("RelayAgent: ".@RelayAgent);
+    logger("RelayAgent: " . @RelayAgent);
 
-    for (my $i = 0; defined($RelayAgent[$i]); $i += 2){
+    for (my $i = 0; defined($RelayAgent[$i]); $i += 2) {
         switch ($RelayAgent[$i]){
-            case 1 { # Circuit ID
-                logger("RelayAgent Circuit ID: ".$RelayAgent[($i + 1)]);
+            case 1 {
+                # Circuit ID
+                logger("RelayAgent Circuit ID: " . $RelayAgent[($i + 1)]);
                 next if (length($RelayAgent[($i + 1)]) < 4);
                 # first bytes must be: 00 04
                 #$_[1] = unpack('n', substr($RelayAgent[($i + 1)], -4, 2)); # may be 's'
                 $RelayAgent[($i + 1)] =~ /(\d+)(?=\ )/;
                 $_[1] = $1;
-                logger("RelayAgent VLan: ".$_[1]);
+                logger("RelayAgent VLan: " . $_[1]);
                 #$_[2] = unpack('C', substr($RelayAgent[($i + 1)], -2, 1));
-                $RelayAgent[($i + 1)] =~  /(\d+)(?=\/\d+:)/;
+                $RelayAgent[($i + 1)] =~ /(\d+)(?=\/\d+:)/;
                 $_[2] = $1;
-                logger("RelayAgent Unit: ".$_[2]);
+                logger("RelayAgent Unit: " . $_[2]);
                 #$_[3] = unpack('C', substr($RelayAgent[($i + 1)], -1, 1));
-                $RelayAgent[($i + 1)] =~  /(\d+)(?=:)/;
+                $RelayAgent[($i + 1)] =~ /(\d+)(?=:)/;
                 $_[3] = $1;
-                logger("RelayAgent Port: ".$_[3]);
+                logger("RelayAgent Port: " . $_[3]);
             }
-            case 2 { # Remote ID
+            case 2 {
+                # Remote ID
                 next if (length($RelayAgent[($i + 1)]) < 6);
                 # first bytes must be: 00 06 or 01 06 or 02 xx
                 # first digit - format/data type, second - len
-                $_[4] = FormatMAC(unpack("H*", substr($RelayAgent[($i + 1)], -6, 6)));
-                logger("RelayAgent 4: ".$_[4]);
+                $_[4] = FormatMAC(unpack("H*", substr($RelayAgent[($i + 1)], - 6, 6)));
+                logger("RelayAgent 4: " . $_[4]);
                 # 02 xx - contain vlan num, undone
             }
-            case 6 { # Subscriber ID
+            case 6 {
+                # Subscriber ID
                 $_[5] = $RelayAgent[($i + 1)];
-                logger("RelayAgent 5: ".$_[5]);
+                logger("RelayAgent 5: " . $_[5]);
             }
         }
     }
@@ -515,7 +529,7 @@ sub GetRelayAgentOptions($$$$$$) {
 
 # change mac addr format from "abcdefg" to "a:b:c:d:e:f:g"
 sub FormatMAC {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     $_[0] =~ /([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})/i;
     return (lc(join(':', $1, $2, $3, $4, $5, $6)));
 }
@@ -528,14 +542,14 @@ sub FormatMAC {
 # mask to bits
 # http://milanweb.net/uni/old/scripting.html
 sub subnetBits {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     my $m = unpack("N", pack("C4", split(/\./, $_[0]))); # parseIPtoNumber
     my $v = pack("L", $m);
     my $bcnt = 0;
 
-    foreach (0..31) {
-        if (vec($v, $_,1) == 1) {
-            $bcnt ++;
+    foreach (0 .. 31) {
+        if (vec($v, $_, 1) == 1) {
+            $bcnt++;
         }
     }
 
@@ -551,7 +565,7 @@ sub subnetBits {
 # Syntax: mk_classless_routes_bin_mask($net, $mask, $gw)
 # example: mk_classless_routes_bin_mask('192.168.1.0', '255.255.255.0', '192.168.0.254')
 sub mk_classless_routes_bin_mask {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $net = $_[0];
     #my $mask = $_[1];
     #my $gw = $_[2];
@@ -562,7 +576,7 @@ sub mk_classless_routes_bin_mask {
 # Syntax: mk_classless_routes_bin_prefixlen($net, $prefixlen, $gw)
 # example: mk_classless_routes_bin_prefixlen('192.168.1.0', 24, '192.168.0.254')
 sub mk_classless_routes_bin_prefixlen {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $net = $_[0];
     #my $prefixlen = $_[1];
     #my $gw = $_[2];
@@ -584,7 +598,7 @@ sub mk_classless_routes_bin_prefixlen {
 }
 
 sub handle_discover {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -596,8 +610,10 @@ sub handle_discover {
     if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1) {
         send_reply($_[1], $_[2], $dhcpresp);
         db_lease_offered($_[0], $_[2]);
-    } else { # if AUTO_CONFIGURE (116) supported - send disable generate link local addr
-        if (defined($_[2]->getOptionRaw(DHO_AUTO_CONFIGURE)) && $_[2]->getOptionValue(DHO_AUTO_CONFIGURE()) != 0) {
+    }
+    else {# if AUTO_CONFIGURE (116) supported - send disable generate link local addr
+        if (defined($_[2]->getOptionRaw(DHO_AUTO_CONFIGURE))
+            && $_[2]->getOptionValue(DHO_AUTO_CONFIGURE()) != 0) {
             $dhcpresp->addOptionValue(DHO_AUTO_CONFIGURE(), 0);
             send_reply($_[1], $_[2], $dhcpresp);
         }
@@ -605,7 +621,7 @@ sub handle_discover {
 }
 
 sub handle_request {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -615,15 +631,16 @@ sub handle_request {
 
     if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1) {
         if ((defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) &&
-        $_[2]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) ne $dhcpresp->yiaddr()) ||
-        (defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) == 0
-        && $_[2]->ciaddr() ne $dhcpresp->yiaddr())) {
+            $_[2]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) ne $dhcpresp->yiaddr()) ||
+            (defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) == 0
+                && $_[2]->ciaddr() ne $dhcpresp->yiaddr())) {
             # NAK if requested addr not equal IP addr in DB
             $dhcpresp->ciaddr('0.0.0.0');
             $dhcpresp->yiaddr('0.0.0.0');
             $dhcpresp->{options}->{DHO_DHCP_MESSAGE_TYPE()} = pack('C', DHCPNAK);
             db_lease_nak($_[0], $_[2]);
-        } else {
+        }
+        else {
             $dhcpresp->{options}->{DHO_DHCP_MESSAGE_TYPE()} = pack('C', DHCPACK);
             db_lease_success($_[0], $_[2]);
         }
@@ -633,7 +650,7 @@ sub handle_request {
 }
 
 sub handle_decline {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -642,7 +659,7 @@ sub handle_decline {
 }
 
 sub handle_release {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -651,7 +668,7 @@ sub handle_release {
 }
 
 sub handle_inform {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -669,7 +686,7 @@ sub handle_inform {
 }
 
 sub static_data_to_reply {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dhcpreqparams = $_[0];
     #my $dhcpresp = $_[1];
 
@@ -678,21 +695,21 @@ sub static_data_to_reply {
         return ();
     }
 
-    if (index($_[0], DHO_ROUTER_DISCOVERY()) != -1) {
+    if (index($_[0], DHO_ROUTER_DISCOVERY()) != - 1) {
         $_[1]->addOptionValue(DHO_ROUTER_DISCOVERY(), 0);
     }
 
-    if (index($_[0], DHO_NTP_SERVERS()) != -1) {
+    if (index($_[0], DHO_NTP_SERVERS()) != - 1) {
         $_[1]->addOptionValue(DHO_NTP_SERVERS(), '8.8.8.8 8.8.8.8');
     }
 
-    if (index($_[0], DHO_NETBIOS_NODE_TYPE()) != -1) {
+    if (index($_[0], DHO_NETBIOS_NODE_TYPE()) != - 1) {
         $_[1]->addOptionValue(DHO_NETBIOS_NODE_TYPE(), 8); # H-Node
     }
 
     # Option 43 must be last for Windows XP proper work
     # https://support.microsoft.com/en-us/kb/953761
-    if (index($_[0], DHO_VENDOR_ENCAPSULATED_OPTIONS()) != -1) {
+    if (index($_[0], DHO_VENDOR_ENCAPSULATED_OPTIONS()) != - 1) {
         # 001 - NetBIOS over TCP/IP (NetBT): 00000002 (2) - disabled
         # 002 - Release DHCP Lease on Shutdown: 00000001 (1) - enabled
         # 255 - END
@@ -701,7 +718,7 @@ sub static_data_to_reply {
 }
 
 sub db_get_requested_data {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -788,7 +805,7 @@ sub db_get_requested_data {
 }
 
 sub db_data_to_reply {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $result = $_[0];
     #my $dhcpreqparams = $_[1];
     #my $dhcpresp = $_[2];
@@ -803,15 +820,15 @@ sub db_data_to_reply {
         # function (typically 50%) of the full configured duration (or lease time) for a client's lease
         if (defined($_[0]->{dhcp_renewal})) {
             $_[2]->addOptionValue(DHO_DHCP_RENEWAL_TIME(), $_[0]->{dhcp_renewal});
-        #} else {
-        #	$_[2]->addOptionValue(DHO_DHCP_RENEWAL_TIME(), ($_[0]->{dhcp_lease_time}/2));
+            #} else {
+            #	$_[2]->addOptionValue(DHO_DHCP_RENEWAL_TIME(), ($_[0]->{dhcp_lease_time}/2));
         }
 
         # function (typically 87.5%) of the full configured duration (or lease time) for a client's lease
         if (defined($_[0]->{dhcp_rebind_time})) {
             $_[2]->addOptionValue(DHO_DHCP_REBINDING_TIME(), $_[0]->{dhcp_rebind_time});
-        #} else {
-        #	$_[2]->addOptionValue(DHO_DHCP_REBINDING_TIME(), ($_[0]->{dhcp_lease_time}*7/8));
+            #} else {
+            #	$_[2]->addOptionValue(DHO_DHCP_REBINDING_TIME(), ($_[0]->{dhcp_lease_time}*7/8));
         }
     }
 
@@ -821,30 +838,29 @@ sub db_data_to_reply {
         return ();
     }
 
-
-    if (index($_[1], DHO_SUBNET_MASK()) != -1 && defined($_[0]->{mask})) {
+    if (index($_[1], DHO_SUBNET_MASK()) != - 1 && defined($_[0]->{mask})) {
         $_[2]->addOptionValue(DHO_SUBNET_MASK(), $_[0]->{mask});
     }
 
-    if (index($_[1], DHO_ROUTERS()) != -1 && defined($_[0]->{gateway})) {
+    if (index($_[1], DHO_ROUTERS()) != - 1 && defined($_[0]->{gateway})) {
         $_[2]->addOptionValue(DHO_ROUTERS(), $_[0]->{gateway});
     }
 
-    if (index($_[1], DHO_DOMAIN_NAME_SERVERS()) != -1 && defined($_[0]->{dns1})) {
+    if (index($_[1], DHO_DOMAIN_NAME_SERVERS()) != - 1 && defined($_[0]->{dns1})) {
         $_[2]->addOptionValue(DHO_DOMAIN_NAME_SERVERS(), "$_[0]->{dns1} $_[0]->{dns2}");
     }
 
-    if (index($_[1], DHO_HOST_NAME()) != -1 && defined($_[0]->{hostname})) {
+    if (index($_[1], DHO_HOST_NAME()) != - 1 && defined($_[0]->{hostname})) {
         $_[2]->addOptionValue(DHO_HOST_NAME(), $_[0]->{hostname});
     }
 
-    if (index($_[1], DHO_DOMAIN_NAME()) != -1 && defined($_[0]->{domain})) {
+    if (index($_[1], DHO_DOMAIN_NAME()) != - 1 && defined($_[0]->{domain})) {
         $_[2]->addOptionValue(DHO_DOMAIN_NAME(), $_[0]->{domain});
     }
 }
 
 sub db_get_routing {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreqparams = $_[1];
     #my $subnet_id = $_[2];
@@ -859,20 +875,22 @@ sub db_get_routing {
     }
 
     $opt33Enbled = index($_[1], DHO_STATIC_ROUTES());
-    if ($opt33Enbled == -1) {
+    if ($opt33Enbled == - 1) {
         $opt33Enbled = undef;
     }
 
     $optClasslessRoutesCode = index($_[1], 121);
-    if ($optClasslessRoutesCode == -1) {
+    if ($optClasslessRoutesCode == - 1) {
         $optClasslessRoutesCode = index($_[1], 249); # MSFT
-        if ($optClasslessRoutesCode == -1) {
+        if ($optClasslessRoutesCode == - 1) {
             $optClasslessRoutesCode = undef;
-        } else {
+        }
+        else {
             $opt33Enbled = undef;
             $optClasslessRoutesCode = 249;
         }
-    } else {
+    }
+    else {
         $opt33Enbled = undef;
         $optClasslessRoutesCode = 121;
     }
@@ -901,7 +919,7 @@ sub db_get_routing {
         my $opt_classless_routes_data = undef; # routes to nets
 
         $ref = $sth->fetchall_arrayref;
-        foreach $row ( @{$ref} ) {
+        foreach $row (@{$ref}) {
             if (defined($opt33Enbled) && @$row[1] eq '255.255.255.255') {
                 # pack dst
                 $opt33_data .= pack('CCCC', split(/\./, @$row[0]));
@@ -914,11 +932,11 @@ sub db_get_routing {
             }
         }
 
-        if (defined($opt33_data)) { # add option
+        if (defined($opt33_data)) {# add option
             $_[3]->addOptionRaw(DHO_STATIC_ROUTES(), $opt33_data);
         }
 
-        if (defined($opt_classless_routes_data)) { # add option
+        if (defined($opt_classless_routes_data)) {# add option
             $_[3]->addOptionRaw($optClasslessRoutesCode, $opt_classless_routes_data);
         }
     }
@@ -926,14 +944,14 @@ sub db_get_routing {
 }
 
 sub db_lease_offered {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-####
+    ####
     $sth = $_[0]->prepare("");
     $sth->execute();
     $sth->finish();
@@ -942,14 +960,14 @@ sub db_lease_offered {
 }
 
 sub db_lease_nak {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-####
+    ####
     $sth = $_[0]->prepare("");
     $sth->execute();
     $sth->finish();
@@ -958,14 +976,14 @@ sub db_lease_nak {
 }
 
 sub db_lease_decline {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-####
+    ####
     $sth = $_[0]->prepare("");
     $sth->execute();
     $sth->finish();
@@ -974,14 +992,14 @@ sub db_lease_decline {
 }
 
 sub db_lease_release {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-####
+    ####
     $sth = $_[0]->prepare("");
     $sth->execute();
     $sth->finish();
@@ -990,7 +1008,7 @@ sub db_lease_release {
 }
 
 sub db_lease_success {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth, $result);
@@ -1000,18 +1018,19 @@ sub db_lease_success {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
 
-    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
+    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id);
 
     $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
     $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
-####
+    ####
     $sth = $_[0]->prepare("");
     $sth->execute();
     $sth->finish();
 }
 
 sub db_log_detailed {
-    logger("Function: ".(caller(0))[3]);
+    logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
@@ -1020,7 +1039,8 @@ sub db_log_detailed {
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
+    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id);
     $client_ip = $_[1]->ciaddr;
     $gateway_ip = $_[1]->giaddr;
     $client_ident = defined($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) ? BuffToHEX($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) : '';

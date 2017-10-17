@@ -141,7 +141,6 @@ sub usage {
 
 # sample logger
 sub logger {
-    logger("Function: ".(caller(0))[3]);
     if (defined($DEBUG) == 0) { return; }
 
     print STDOUT strftime "[%d/%b/%Y %H:%M:%S] ", localtime;

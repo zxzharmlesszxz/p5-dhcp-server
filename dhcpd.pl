@@ -995,10 +995,14 @@ sub db_lease_decline {
     ####
     $sth = $_[0]->prepare(
         "INSERT INTO
-            `log_dhcp`
-            (`t`, `agent_mac`, `agent_ip`, `cl_mac`, `cl_ip`, `cl_port`, `cl_vlan`, `cl_name`, `cl_vendor`, `m_type`)
+            `dhcp_log`
+            (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`,
+            `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`,
+            `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`)
          VALUES
-            (NOW(), '$dhcp_opt82_chasis_id', '$gateway_ip', '$mac', '$requested_ip', '$dhcp_opt82_port_id', '$dhcp_opt82_vlan_id', '$hostname', '$dhcp_vendor_class', '$message_type');
+            (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname',
+            '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id',
+            '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');
         "
     );
     $sth->execute();
@@ -1087,7 +1091,8 @@ sub db_log_detailed {
             (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`,
             `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`,
             `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`)
-        VALUES(NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname',
+        VALUES
+            (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname',
             '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id',
             '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id')
         ON DUPLICATE KEY UPDATE

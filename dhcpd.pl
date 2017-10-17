@@ -485,15 +485,15 @@ sub GetRelayAgentOptions($$$$$$) {
                 #$_[1] = unpack('n', substr($RelayAgent[($i + 1)], -4, 2)); # may be 's'
                 $RelayAgent[($i + 1)] =~ /(\d+)(?=\ )/;
                 $_[1] = $1;
-                logger("RelayAgent 1: ".$_[1]);
+                logger("RelayAgent VLan: ".$_[1]);
                 #$_[2] = unpack('C', substr($RelayAgent[($i + 1)], -2, 1));
                 $RelayAgent[($i + 1)] =~  /(\d+)(?=\/\d+:)/;
                 $_[2] = $1;
-                logger("RelayAgent 2: ".$_[2]);
+                logger("RelayAgent Unit: ".$_[2]);
                 #$_[3] = unpack('C', substr($RelayAgent[($i + 1)], -1, 1));
                 $RelayAgent[($i + 1)] =~  /(\d+)(?=:)/;
                 $_[3] = $1;
-                logger("RelayAgent 3: ".$_[3]);
+                logger("RelayAgent Port: ".$_[3]);
             }
             case 2 { # Remote ID
                 next if (length($RelayAgent[($i + 1)]) < 6);

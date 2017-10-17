@@ -27,6 +27,7 @@ use Net::DHCP::Constants;
 use Benchmark ':hireswallclock';
 use POSIX qw(setsid setuid strftime :signal_h);
 use Getopt::Long;
+use Sys::Syslog;
 #require 'sys/syscall.ph';
 
 binmode(STDOUT, ':utf8');
@@ -112,6 +113,8 @@ sub startpoint {
     # ignore any PIPE signal: standard behaviour is to quit process
     $SIG{PIPE} = 'IGNORE';
 
+    openlog("dhcp-perl", "ndelay,pid", "local0");
+
     logger("BIND_ADDR: $BIND_ADDR, THREADS_COUNT: $THREADS_COUNT, PIDFILE: $PIDFILE");
 
     if (defined($DAEMON)) {
@@ -143,6 +146,7 @@ sub usage {
 
 # sample logger
 sub logger {
+    syslog('info', $_[0]);
     if (defined($DEBUG) == 0) {return;}
 
     print STDOUT strftime "[%d/%b/%Y %H:%M:%S] ", localtime;
@@ -208,6 +212,8 @@ sub main {
     }
 
     logger("Main: END!");
+
+    closelog();
 }
 
 sub request_loop {
@@ -222,7 +228,12 @@ sub request_loop {
     # each thread make its own connection to DB
     # connect($data_source, $username, $password, \%attr)
     # dbi:DriverName:database=database_name;host=hostname;port=port
-    $dbh = DBI->connect("DBI:" . $DBDATASOURCE, $DBLOGIN, $DBPASS);
+
+    until($dbh = DBI->connect("DBI:".$DBDATASOURCE, $DBLOGIN, $DBPASS)){
+        logger("Thread ($tid): Could not connect to database: $DBI::errstr");
+        logger("Thread ($tid): Sleeping 10 sec to retry");
+        sleep(10);
+    }
 
     if (defined($dbh) == 0) {
         logger("Could not connect to database: $DBI::errstr");

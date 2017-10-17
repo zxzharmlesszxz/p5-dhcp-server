@@ -1071,7 +1071,7 @@ sub db_lease_success {
         SET
             `lease_time` = UNIX_TIMESTAMP()+3600
         WHERE
-            `clients`.`mac` ='$mac';
+            `mac` ='$mac';
         "
     );
     $sth->execute();

@@ -989,9 +989,21 @@ sub db_lease_decline {
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
+    my ($dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
+    my ($client_ip, $gateway_ip, $client_ident, $requested_ip, $hostname, $dhcp_vendor_class, $dhcp_user_class);
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
+    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id);
+    $client_ip = $_[1]->ciaddr;
+    $gateway_ip = $_[1]->giaddr;
+    $client_ident = defined($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) ? BuffToHEX($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) : '';
+    $requested_ip = defined($_[1]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) ? $_[1]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) : '';
+    $hostname = defined($_[1]->getOptionRaw(DHO_HOST_NAME())) ? $_[1]->getOptionValue(DHO_HOST_NAME()) : '';
+    $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
+    $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
+
     ####
     $sth = $_[0]->prepare(
         "INSERT INTO

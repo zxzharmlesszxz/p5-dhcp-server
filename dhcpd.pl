@@ -479,6 +479,7 @@ sub GetRelayAgentOptions($$$$$$) {
     for (my $i = 0; defined($RelayAgent[$i]); $i += 2){
         switch ($RelayAgent[$i]){
             case 1 { # Circuit ID
+                logger("RelayAgent Circuit ID: ".$RelayAgent[($i + 1)]);
                 next if (length($RelayAgent[($i + 1)]) < 4);
                 # first bytes must be: 00 04
                 $_[1] = unpack('n', substr($RelayAgent[($i + 1)], -4, 2)); # may be 's'

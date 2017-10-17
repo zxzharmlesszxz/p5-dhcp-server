@@ -742,12 +742,14 @@ sub db_get_requested_data {
 
     $sth = $_[0]->prepare(
         "SELECT
-            `ip`,
-            `subnet_id`
+            *
         FROM
-            `clients`
+            `clients`,
+            `subnets`
         WHERE
             `client_mac` = '$mac'
+        AND
+            `clients`.`subnet_id` = `subnets`.`subnet_id`
         LIMIT 1;
         "
     );

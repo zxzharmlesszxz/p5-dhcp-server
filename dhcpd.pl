@@ -748,8 +748,6 @@ sub db_get_requested_data {
             `clients`
         WHERE
             `client_mac` = '$mac'
-        AND
-            `subnet_id` = '$dhcp_opt82_vlan_id'
         LIMIT 1;
         "
     );
@@ -786,7 +784,7 @@ sub db_get_requested_data {
                     `vlan_id` = '$dhcp_opt82_vlan_id',
                 AND
                     `type` = 'guest'
-                LIMIT 1
+                LIMIT 1;
                 "
             );
             $sth->execute();
@@ -995,7 +993,14 @@ sub db_lease_decline {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     ####
-    $sth = $_[0]->prepare("");
+    $sth = $_[0]->prepare(
+        "INSERT INTO
+            `log_dhcp`
+            (`t`, `agent_mac`, `agent_ip`, `cl_mac`, `cl_ip`, `cl_port`, `cl_vlan`, `cl_name`, `cl_vendor`, `m_type`)
+         VALUES
+            (NOW(), '$dhcp_opt82_chasis_id', '$gateway_ip', '$mac', '$requested_ip', '$dhcp_opt82_port_id', '$dhcp_opt82_vlan_id', '$hostname', '$dhcp_vendor_class', '$message_type');
+        "
+    );
     $sth->execute();
     $sth->finish();
 
@@ -1011,7 +1016,16 @@ sub db_lease_release {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     ####
-    $sth = $_[0]->prepare("");
+    $sth = $_[0]->prepare(
+        "UPDATE
+            `clients`
+        SET
+            `lease_time` = '',
+            `mac` = NULL
+        WHERE
+            `mac` ='$mac';
+        "
+    );
     $sth->execute();
     $sth->finish();
 
@@ -1035,7 +1049,15 @@ sub db_lease_success {
     $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
     $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
     ####
-    $sth = $_[0]->prepare("");
+    $sth = $_[0]->prepare(
+        "UPDATE
+            `clients`
+        SET
+            `lease_time` = UNIX_TIMESTAMP()+3600
+        WHERE
+            `clients`.`mac` ='$mac';
+        "
+    );
     $sth->execute();
     $sth->finish();
 }

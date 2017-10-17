@@ -720,6 +720,8 @@ sub db_get_requested_data {
             `clients`
         WHERE
             `client_mac` = '$mac'
+        AND
+            `subnet_id` = '$dhcp_opt82_vlan_id'
         LIMIT 1;
         "
     );

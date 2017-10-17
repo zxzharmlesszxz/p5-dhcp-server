@@ -665,6 +665,9 @@ sub static_data_to_reply {
 }
 
 sub db_get_requested_data {
+    logger("Function: db_get_requested_data ");
+    logger($_[1]);
+    logger($_[2]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];

@@ -677,13 +677,12 @@ sub db_get_requested_data {
 
     $sth = $_[0]->prepare(
         "SELECT
-            `ip`
+            `ip`,
+            `subnet_id`
         FROM
             `clients`
         WHERE
             `client_mac` = '$mac'
-        AND
-            `vlan_id` = '$dhcp_opt82_vlan_id'
         LIMIT 1;
         "
     );

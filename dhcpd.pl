@@ -483,13 +483,13 @@ sub GetRelayAgentOptions($$$$$$) {
                 next if (length($RelayAgent[($i + 1)]) < 4);
                 # first bytes must be: 00 04
                 #$_[1] = unpack('n', substr($RelayAgent[($i + 1)], -4, 2)); # may be 's'
-                $_[1] =~ /(\d+)(?=\ )/);
+                $_[1] =~ /(\d+)(?=\ )/;
                 logger("RelayAgent 1: ".$_[1]);
                 #$_[2] = unpack('C', substr($RelayAgent[($i + 1)], -2, 1));
                 $_[2] =~  /(\d+)(?=\/\d+:)/;
                 logger("RelayAgent 2: ".$_[2]);
                 #$_[3] = unpack('C', substr($RelayAgent[($i + 1)], -1, 1));
-                $_[3] =~  /(\d+)(?=:)/);
+                $_[3] =~  /(\d+)(?=:)/;
                 logger("RelayAgent 3: ".$_[3]);
             }
             case 2 { # Remote ID

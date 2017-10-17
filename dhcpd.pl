@@ -474,6 +474,8 @@ sub GetRelayAgentOptions($$$$$$) {
 
     @RelayAgent = $_[0]->decodeRelayAgent($_[0]->getOptionRaw(DHO_DHCP_AGENT_OPTIONS()));
 
+    logger("RelayAgent: ".$RelayAgent->toString());
+
     for (my $i = 0; defined($RelayAgent[$i]); $i += 2){
         switch ($RelayAgent[$i]){
         case 1 { # Circuit ID
@@ -697,8 +699,6 @@ sub db_get_requested_data {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     $dhcpreqparams = $_[1]->getOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST());
-    logger("Function: db_get_requested_data $mac");
-    logger("Function: db_get_requested_data $dhcpreqparams");
 
     $sth = $_[0]->prepare(
         "SELECT

@@ -474,7 +474,7 @@ sub GetRelayAgentOptions($$$$$$) {
 
     @RelayAgent = $_[0]->decodeRelayAgent($_[0]->getOptionRaw(DHO_DHCP_AGENT_OPTIONS()));
 
-    logger("RelayAgent: ".$RelayAgent->toString());
+    logger("RelayAgent: ".@RelayAgent);
 
     for (my $i = 0; defined($RelayAgent[$i]); $i += 2){
         switch ($RelayAgent[$i]){

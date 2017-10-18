@@ -619,7 +619,7 @@ sub handle_discover {
 
     if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1) {
         send_reply($_[1], $_[2], $dhcpresp);
-        db_lease_offered($_[0], $_[2]);
+        db_lease_offered($_[0], $_[2], $dhcpresp);
     }
     else {# if AUTO_CONFIGURE (116) supported - send disable generate link local addr
         if (defined($_[2]->getOptionRaw(DHO_AUTO_CONFIGURE))
@@ -961,6 +961,7 @@ sub db_lease_offered {
     logger("Function: " . (caller(0))[3]);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
+    #my $dhcpresp = $_[2];
     my ($mac, $sth);
 
     # change hw addr format
@@ -970,9 +971,9 @@ sub db_lease_offered {
         "UPDATE
             `ips`
         SET
-            `lease_time` = NOW()
+            `lease_time` = UNIX_TIMESTAMP()+3600
         WHERE
-            `ip` =
+            `ip` = '$_[1]->yiaddr';
         "
     );
     $sth->execute();

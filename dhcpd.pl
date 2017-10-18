@@ -960,18 +960,11 @@ sub db_lease_offered {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     ####
-    $sth = $_[0]->prepare(
-        "UPDATE
-            `ips`
-        SET
-            `lease_time` = UNIX_TIMESTAMP()+3600
-        WHERE
-            `ip` = '$_[2]->yiaddr()';
-        "
+    $sth = $_[0]->prepare("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';"
     );
 
     if ($DEBUG > 1) {
-        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '$_[2]->yiaddr()';");
+        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
     }
 
     $sth->execute();

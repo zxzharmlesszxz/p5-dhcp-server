@@ -617,7 +617,7 @@ sub handle_discover {
     $dhcpresp = GenDHCPRespPkt($_[2]);
     $dhcpresp->{options}->{DHO_DHCP_MESSAGE_TYPE()} = pack('C', DHCPOFFER);
 
-    if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1) {
+    if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1, $_[1]) {
         send_reply($_[1], $_[2], $dhcpresp);
         db_lease_offered($_[0], $_[2], $dhcpresp);
     }
@@ -639,7 +639,7 @@ sub handle_request {
 
     $dhcpresp = GenDHCPRespPkt($_[2]);
 
-    if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1) {
+    if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 1, $_[1]) {
         if ((defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) &&
             $_[2]->getOptionValue(DHO_DHCP_REQUESTED_ADDRESS()) ne $dhcpresp->yiaddr()) ||
             (defined($_[2]->getOptionRaw(DHO_DHCP_REQUESTED_ADDRESS())) == 0
@@ -687,7 +687,7 @@ sub handle_inform {
     $dhcpresp = GenDHCPRespPkt($_[2]);
     $dhcpresp->{options}->{DHO_DHCP_MESSAGE_TYPE()} = pack('C', DHCPACK);
 
-    if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 0) {
+    if (db_get_requested_data($_[0], $_[2], $dhcpresp) == 0, $_[1]) {
         $dhcpreqparams = $_[2]->getOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST());
         static_data_to_reply($dhcpreqparams, $dhcpresp);
     }
@@ -730,7 +730,8 @@ sub db_get_requested_data {
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
-    my ($port, $addr) = unpack_sockaddr_in($fromaddr);
+    #my $fromaddr = $_[3];
+    my ($port, $addr) = unpack_sockaddr_in($_[3]);
     my (
         $mac,
         $sth,

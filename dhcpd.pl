@@ -727,7 +727,7 @@ sub static_data_to_reply {
     }
 
     if ($DEBUG > 1) {
-        logger($_[1]->toString());
+        logger(Dumper $_[1]);
     }
 }
 
@@ -761,6 +761,7 @@ sub db_get_requested_data {
 
     if ($DEBUG > 1) {
         logger($_[1]->toString());
+        logger(Dumper $_[2]);
         logger("Got a packet src = $ipaddr:$port");
         logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` AND `subnets`.`gateway` = '$ipaddr' LIMIT 1;");
     }
@@ -921,6 +922,7 @@ sub db_get_routing {
     $sth = $_[0]->prepare("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
 
     if ($DEBUG > 1) {
+        logger(Dumper $_{3});
         logger("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
     }
 
@@ -969,7 +971,7 @@ sub db_lease_offered {
     $sth = $_[0]->prepare("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
 
     if ($DEBUG > 1) {
-        logger($_[2]->toString());
+        logger(Dumper $_[2]);
         logger("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
     }
 

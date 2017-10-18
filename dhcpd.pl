@@ -415,7 +415,7 @@ sub send_reply {
         my $ipaddr = inet_ntoa($addr);
         logger("Sending response to = $ipaddr:$port length = " . length($dhcpresppkt));
         if ($DEBUG > 1) {
-            logger($_[2]->toString());
+            logger($_[2]->serialize());
         }
     }
 
@@ -918,18 +918,7 @@ sub db_get_routing {
         return ();
     }
 
-    $sth = $_[0]->prepare(
-        "SELECT
-            `destination`,
-            `mask`,
-            `gateway`
-        FROM
-            `subnets_routes`
-        WHERE
-            `subnet_id` = '$_[2]'
-        LIMIT 30;
-        "
-    );
+    $sth = $_[0]->prepare("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
 
     if ($DEBUG > 1) {
         logger("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
@@ -1070,16 +1059,7 @@ sub db_lease_decline {
     );
 
     if ($DEBUG > 1) {
-        logger("INSERT INTO
-                           `dhcp_log`
-                           (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`,
-                           `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`,
-                           `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`)
-                        VALUES
-                           (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname',
-                           '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id',
-                           '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');
-                       ");
+        logger("INSERT INTO `dhcp_log` (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`, `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`, `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`) VALUES (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname', '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id', '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');");
     }
 
     $sth->execute();
@@ -1160,7 +1140,7 @@ sub db_lease_success {
                 FROM
                     `clients`
                 WHERE
-                    `mac` = $mac
+                    `mac` = '$mac'
                 AND
                     `subnet_id` = (
                         SELECT
@@ -1176,7 +1156,7 @@ sub db_lease_success {
     );
 
     if ($DEBUG > 1) {
-        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = $mac AND `subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");
+        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = '$mac' AND `subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");
     }
 
     $sth->execute();

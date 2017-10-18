@@ -306,28 +306,28 @@ sub request_loop {
             # handle packet
             switch ($dhcpreq->getOptionValue(DHO_DHCP_MESSAGE_TYPE())) {
                 case DHCPDISCOVER {
-                            #-> DHCPOFFER
-                            db_log_detailed($dbh, $dhcpreq);
-                            handle_discover($dbh, $fromaddr, $dhcpreq);
-                        }
-                        case DHCPREQUEST {
-                                    #-> DHCPACK/DHCPNAK
-                                    db_log_detailed($dbh, $dhcpreq);
-                                    handle_request($dbh, $fromaddr, $dhcpreq);
-                                }
-                                case DHCPDECLINE {
-                                            db_log_detailed($dbh, $dhcpreq);
-                                            handle_decline($dbh, $fromaddr, $dhcpreq);
-                                        }
-                                        case DHCPRELEASE {
-                                                    db_log_detailed($dbh, $dhcpreq);
-                                                    handle_release($dbh, $fromaddr, $dhcpreq);
-                                                }
-                                                case DHCPINFORM {
-                                                            #-> DHCPACK
-                                                            db_log_detailed($dbh, $dhcpreq);
-                                                            handle_inform($dbh, $fromaddr, $dhcpreq);
-                                                        }
+                    #-> DHCPOFFER
+                    db_log_detailed($dbh, $dhcpreq);
+                    handle_discover($dbh, $fromaddr, $dhcpreq);
+                }
+                case DHCPREQUEST {
+                    #-> DHCPACK/DHCPNAK
+                    db_log_detailed($dbh, $dhcpreq);
+                    handle_request($dbh, $fromaddr, $dhcpreq);
+                }
+                case DHCPDECLINE {
+                    db_log_detailed($dbh, $dhcpreq);
+                    handle_decline($dbh, $fromaddr, $dhcpreq);
+                }
+                case DHCPRELEASE {
+                    db_log_detailed($dbh, $dhcpreq);
+                    handle_release($dbh, $fromaddr, $dhcpreq);
+                }
+                case DHCPINFORM {
+                    #-> DHCPACK
+                    db_log_detailed($dbh, $dhcpreq);
+                    handle_inform($dbh, $fromaddr, $dhcpreq);
+                }
             }
 
             if (defined($DEBUG)) {
@@ -489,10 +489,9 @@ sub GetRelayAgentOptions($$$$$$) {
     $_[4] = '';
     $_[5] = '';
 
-    if (defined($_[0]->getOptionRaw(DHO_DHCP_AGENT_OPTIONS())) == 0) {
-        # no options, return
-        return (0);
-    }
+    # no options, return
+    return(0) if (defined($_[0]->getOptionRaw(DHO_DHCP_AGENT_OPTIONS())) == 0);
+
 
     @RelayAgent = $_[0]->decodeRelayAgent($_[0]->getOptionRaw(DHO_DHCP_AGENT_OPTIONS()));
 
@@ -702,9 +701,7 @@ sub static_data_to_reply {
     #my $dhcpresp = $_[1];
 
     # do not add params if not requested
-    if (defined($_[0]) == 0) {
-        return ();
-    }
+    return() if (defined($_[0]) == 0);
 
     if (index($_[0], DHO_ROUTER_DISCOVERY()) != - 1) {
         $_[1]->addOptionValue(DHO_ROUTER_DISCOVERY(), 0);
@@ -733,8 +730,19 @@ sub db_get_requested_data {
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
-    my ($mac, $sth, $dhcpreqparams, $result);
-    my ($dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
+    my (
+        $mac,
+        $sth,
+        $dhcpreqparams,
+        $result
+    );
+    my (
+        $dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id
+    );
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
@@ -747,7 +755,7 @@ sub db_get_requested_data {
             `clients`,
             `subnets`
         WHERE
-            `client_mac` = '$mac'
+            `clients`.`mac` = '$mac'
         AND
             `clients`.`subnet_id` = `subnets`.`subnet_id`
         LIMIT 1;
@@ -771,21 +779,16 @@ sub db_get_requested_data {
         if ($dhcp_opt82_chasis_id ne '') {
             $sth = $_[0]->prepare(
                 "SELECT
-                    `dhcp_lease_time`,
-                    `dhcp_renewal`,
-                    `dhcp_rebind_time`,
-                    `mask`,
-                    `gateway`,
-                    `dns1`,
-                    `dns2`,
-                    `subnet_id`
-                    `domain`
+                    *
                 FROM
-                    `subnets` as s
+                    `subnets`,
+                    `ips`
                 WHERE
-                    `vlan_id` = '$dhcp_opt82_vlan_id'
+                    `subnets`.`vlan_id` = '$dhcp_opt82_vlan_id'
                 AND
-                    `type` = 'guest'
+                    `subnets`.`type` = 'guest'
+                AND
+                    `ips`.`lease_time` = ''
                 LIMIT 1;
                 "
             );
@@ -845,9 +848,7 @@ sub db_data_to_reply {
 
 
     # do not add params if not requested
-    if (defined($_[1]) == 0) {
-        return ();
-    }
+    return() if (defined($_[1]) == 0);
 
     if (index($_[1], DHO_SUBNET_MASK()) != - 1 && defined($_[0]->{mask})) {
         $_[2]->addOptionValue(DHO_SUBNET_MASK(), $_[0]->{mask});
@@ -876,14 +877,14 @@ sub db_get_routing {
     #my $dhcpreqparams = $_[1];
     #my $subnet_id = $_[2];
     #my $dhcpresp = $_[3];
-    my $sth;
-    my $opt33Enbled;
-    my $optClasslessRoutesCode;
+    my (
+        $sth,
+        $opt33Enbled,
+        $optClasslessRoutesCode
+    );
 
     # do not add routes if not requested
-    if (defined($_[1]) == 0) {
-        return ();
-    }
+    return() if (defined($_[1]) == 0);
 
     $opt33Enbled = index($_[1], DHO_STATIC_ROUTES());
     if ($opt33Enbled == - 1) {
@@ -916,8 +917,10 @@ sub db_get_routing {
             `destination`,
             `mask`,
             `gateway`
-        FROM `subnets_routes`
-        WHERE `subnet_id` = '$_[2]'
+        FROM
+            `subnets_routes`
+        WHERE
+            `subnet_id` = '$_[2]'
         LIMIT 30;
         "
     );
@@ -963,7 +966,15 @@ sub db_lease_offered {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     ####
-    $sth = $_[0]->prepare("");
+    $sth = $_[0]->prepare(
+        "UPDATE
+            `ips`
+        SET
+            `lease_time` = NOW()
+        WHERE
+            `ip` =
+        "
+    );
     $sth->execute();
     $sth->finish();
 
@@ -991,13 +1002,35 @@ sub db_lease_decline {
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
-    my ($dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
-    my ($client_ip, $gateway_ip, $client_ident, $requested_ip, $hostname, $dhcp_vendor_class, $dhcp_user_class);
+    my (
+        $dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id
+    );
+    my (
+        $client_ip,
+        $gateway_ip,
+        $client_ident,
+        $requested_ip,
+        $hostname,
+        $dhcp_vendor_class,
+        $dhcp_user_class
+    );
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id,
-        $dhcp_opt82_subscriber_id);
+
+    GetRelayAgentOptions(
+        $_[1],
+        $dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id
+    );
+
     $client_ip = $_[1]->ciaddr;
     $gateway_ip = $_[1]->giaddr;
     $client_ident = defined($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) ? BuffToHEX($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) : '';
@@ -1036,7 +1069,7 @@ sub db_lease_release {
     ####
     $sth = $_[0]->prepare(
         "UPDATE
-            `clients`
+            `ips`
         SET
             `lease_time` = '',
             `mac` = NULL
@@ -1055,25 +1088,55 @@ sub db_lease_success {
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth, $result);
-    my ($dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
-    my ($dhcp_vendor_class, $dhcp_user_class);
+    my ($dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id,
+        $dhcp_vendor_class,
+        $dhcp_user_class
+    );
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
 
-    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id,
-        $dhcp_opt82_subscriber_id);
+    GetRelayAgentOptions(
+        $_[1],
+        $dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id
+    );
 
     $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
     $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
-    ####
+
     $sth = $_[0]->prepare(
         "UPDATE
-            `clients`
+            `ips`
         SET
-            `lease_time` = UNIX_TIMESTAMP()+3600
+            `lease_time` = UNIX_TIMESTAMP()+3600,
+            `mac` ='$mac'
         WHERE
-            `mac` ='$mac';
+            `ip` = (
+                SELECT
+                    `ip`
+                FROM
+                    `clients`
+                WHERE
+                    `mac` = $mac
+                AND
+                    `subnet_id` = (
+                        SELECT
+                            `subnet_id`
+                        FROM
+                            `subnets`
+                        WHERE
+                            `vlan_id` = $dhcp_opt82_vlan_id
+                        AND `type` != 'guest'
+                    )
+            );
         "
     );
     $sth->execute();
@@ -1085,13 +1148,35 @@ sub db_log_detailed {
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
-    my ($dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id, $dhcp_opt82_subscriber_id);
-    my ($client_ip, $gateway_ip, $client_ident, $requested_ip, $hostname, $dhcp_vendor_class, $dhcp_user_class);
+    my (
+        $dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id
+    );
+    my (
+        $client_ip,
+        $gateway_ip,
+        $client_ident,
+        $requested_ip,
+        $hostname,
+        $dhcp_vendor_class,
+        $dhcp_user_class
+    );
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-    GetRelayAgentOptions($_[1], $dhcp_opt82_vlan_id, $dhcp_opt82_unit_id, $dhcp_opt82_port_id, $dhcp_opt82_chasis_id,
-        $dhcp_opt82_subscriber_id);
+
+    GetRelayAgentOptions(
+        $_[1],
+        $dhcp_opt82_vlan_id,
+        $dhcp_opt82_unit_id,
+        $dhcp_opt82_port_id,
+        $dhcp_opt82_chasis_id,
+        $dhcp_opt82_subscriber_id
+    );
+
     $client_ip = $_[1]->ciaddr;
     $gateway_ip = $_[1]->giaddr;
     $client_ident = defined($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) ? BuffToHEX($_[1]->getOptionRaw(DHO_DHCP_CLIENT_IDENTIFIER())) : '';

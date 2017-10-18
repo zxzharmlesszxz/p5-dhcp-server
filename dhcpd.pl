@@ -783,7 +783,7 @@ sub db_get_requested_data {
                 FROM
                     `subnets` as s
                 WHERE
-                    `vlan_id` = '$dhcp_opt82_vlan_id',
+                    `vlan_id` = '$dhcp_opt82_vlan_id'
                 AND
                     `type` = 'guest'
                 LIMIT 1;

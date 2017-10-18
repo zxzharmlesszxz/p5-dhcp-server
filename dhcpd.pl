@@ -761,6 +761,9 @@ sub db_get_requested_data {
         LIMIT 1;
         "
     );
+    if ($DEBUG > 1) {
+        logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
+    }
     $sth->execute();
     if ($sth->rows()) {
         $result = $sth->fetchrow_hashref();
@@ -792,6 +795,9 @@ sub db_get_requested_data {
                 LIMIT 1;
                 "
             );
+            if ($DEBUG > 1) {
+                    logger("SELECT * FROM `subnets`, `ips` WHERE `subnets`.`vlan_id` = '$dhcp_opt82_vlan_id' AND `subnets`.`type` = 'guest' AND `ips`.`lease_time` = '' LIMIT 1;");
+            }
             $sth->execute();
 
             if ($sth->rows()) {
@@ -925,6 +931,10 @@ sub db_get_routing {
         "
     );
 
+    if ($DEBUG > 1) {
+        logger("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
+    }
+
     $sth->execute();
     if ($sth->rows()) {
         my $ref;
@@ -973,9 +983,14 @@ sub db_lease_offered {
         SET
             `lease_time` = UNIX_TIMESTAMP()+3600
         WHERE
-            `ip` = '$_[1]->yiaddr';
+            `ip` = '$_[2]->yiaddr';
         "
     );
+
+    if ($DEBUG > 1) {
+        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '$_[2]->yiaddr';");
+    }
+
     $sth->execute();
     $sth->finish();
 
@@ -1053,6 +1068,20 @@ sub db_lease_decline {
             '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');
         "
     );
+
+    if ($DEBUG > 1) {
+        logger("INSERT INTO
+                           `dhcp_log`
+                           (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`,
+                           `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`,
+                           `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`)
+                        VALUES
+                           (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname',
+                           '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id',
+                           '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');
+                       ");
+    }
+
     $sth->execute();
     $sth->finish();
 
@@ -1078,6 +1107,11 @@ sub db_lease_release {
             `mac` ='$mac';
         "
     );
+
+    if ($DEBUG > 1) {
+        logger("UPDATE `ips` SET `lease_time` = '', `mac` = NULL WHERE `mac` ='$mac';");
+    }
+
     $sth->execute();
     $sth->finish();
 
@@ -1140,6 +1174,11 @@ sub db_lease_success {
             );
         "
     );
+
+    if ($DEBUG > 1) {
+        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = $mac AND `subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");
+    }
+
     $sth->execute();
     $sth->finish();
 }

@@ -966,7 +966,7 @@ sub db_lease_offered {
         SET
             `lease_time` = UNIX_TIMESTAMP()+3600
         WHERE
-            `ip` = '$_[2]->yiaddr';
+            `ip` = '$_[2]->yiaddr()';
         "
     );
 

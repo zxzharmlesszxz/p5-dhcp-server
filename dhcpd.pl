@@ -960,10 +960,10 @@ sub db_lease_offered {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     ####
-    $sth = $_[0]->prepare("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
+    $sth = $_[0]->prepare("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
 
     if ($DEBUG > 1) {
-        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
+        logger("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
     }
 
     $sth->execute();
@@ -1063,16 +1063,7 @@ sub db_lease_release {
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     ####
-    $sth = $_[0]->prepare(
-        "UPDATE
-            `ips`
-        SET
-            `lease_time` = '',
-            `mac` = NULL
-        WHERE
-            `mac` ='$mac';
-        "
-    );
+    $sth = $_[0]->prepare("UPDATE `ips` SET `lease_time` = '', `mac` = NULL WHERE `mac` ='$mac';");
 
     if ($DEBUG > 1) {
         logger("UPDATE `ips` SET `lease_time` = '', `mac` = NULL WHERE `mac` ='$mac';");
@@ -1113,33 +1104,7 @@ sub db_lease_success {
     $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
     $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
 
-    $sth = $_[0]->prepare(
-        "UPDATE
-            `ips`
-        SET
-            `lease_time` = UNIX_TIMESTAMP()+3600,
-            `mac` ='$mac'
-        WHERE
-            `ip` = (
-                SELECT
-                    `ip`
-                FROM
-                    `clients`
-                WHERE
-                    `mac` = '$mac'
-                AND
-                    `subnet_id` = (
-                        SELECT
-                            `subnet_id`
-                        FROM
-                            `subnets`
-                        WHERE
-                            `vlan_id` = $dhcp_opt82_vlan_id
-                        AND `type` != 'guest'
-                    )
-            );
-        "
-    );
+    $sth = $_[0]->prepare("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = '$mac' AND`subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");
 
     if ($DEBUG > 1) {
         logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = '$mac' AND `subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");

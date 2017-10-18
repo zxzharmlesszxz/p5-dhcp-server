@@ -732,6 +732,7 @@ sub db_get_requested_data {
     #my $dhcpresp = $_[2];
     #my $fromaddr = $_[3];
     my ($port, $addr) = unpack_sockaddr_in($_[3]);
+    my $ipaddr = inet_ntoa($addr);
     my (
         $mac,
         $sth,
@@ -754,7 +755,7 @@ sub db_get_requested_data {
 
     if ($DEBUG > 1) {
         logger($_[1]->toString());
-        logger("Thread $tid: Got a packet src = $ipaddr:$port");
+        logger("Got a packet src = $ipaddr:$port");
         logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
     }
     $sth->execute();

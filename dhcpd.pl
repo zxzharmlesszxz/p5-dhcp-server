@@ -751,12 +751,12 @@ sub db_get_requested_data {
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
     $dhcpreqparams = $_[1]->getOptionValue(DHO_DHCP_PARAMETER_REQUEST_LIST());
 
-    $sth = $_[0]->prepare("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
+    $sth = $_[0]->prepare("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` AND `subnets`.`gateway` = '$ipaddr' LIMIT 1;");
 
     if ($DEBUG > 1) {
         logger($_[1]->toString());
         logger("Got a packet src = $ipaddr:$port");
-        logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
+        logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` AND `subnets`.`type` = '$ipaddr' LIMIT 1;");
     }
     $sth->execute();
     if ($sth->rows()) {

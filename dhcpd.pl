@@ -415,7 +415,7 @@ sub send_reply {
         my $ipaddr = inet_ntoa($addr);
         logger("Sending response to = $ipaddr:$port length = " . length($dhcpresppkt));
         if ($DEBUG > 1) {
-            logger($_[2]->serialize());
+            logger($_[1]->toString());
         }
     }
 
@@ -752,7 +752,7 @@ sub db_get_requested_data {
     $sth = $_[0]->prepare("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
 
     if ($DEBUG > 1) {
-        logger($_[1]->serialize());
+        logger($_[1]->toString());
         logger("Thread $tid: Got a packet src = $ipaddr:$port");
         logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
     }

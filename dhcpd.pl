@@ -28,6 +28,7 @@ use Benchmark ':hireswallclock';
 use POSIX qw(setsid setuid strftime :signal_h);
 use Getopt::Long;
 use Sys::Syslog;
+use Data::Dumper;
 #require 'sys/syscall.ph';
 
 binmode(STDOUT, ':utf8');
@@ -416,6 +417,7 @@ sub send_reply {
         logger("Sending response to = $ipaddr:$port length = " . length($dhcpresppkt));
         if ($DEBUG > 1) {
             logger($_[1]->toString());
+            logger(Dumper $_[2]);
         }
     }
 
@@ -723,6 +725,10 @@ sub static_data_to_reply {
         # 255 - END
         $_[1]->addOptionRaw(DHO_VENDOR_ENCAPSULATED_OPTIONS(), "\x01\x04\x00\x00\x00\x02\x02\x04\x00\x00\x00\x01\xff");
     }
+
+    if ($DEBUG > 1) {
+        logger($_[1]->toString());
+    }
 }
 
 sub db_get_requested_data {
@@ -963,6 +969,7 @@ sub db_lease_offered {
     $sth = $_[0]->prepare("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
 
     if ($DEBUG > 1) {
+        logger($_[2]->toString());
         logger("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
     }
 

@@ -762,6 +762,7 @@ sub db_get_requested_data {
         "
     );
     if ($DEBUG > 1) {
+        logger($_[1]->serialize());
         logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` LIMIT 1;");
     }
     $sth->execute();

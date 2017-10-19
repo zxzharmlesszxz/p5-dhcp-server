@@ -63,7 +63,6 @@ sub signal_handler {
 }
 
 sub startpoint {
-    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     if ($#ARGV == - 1) {
         usage();
         return;
@@ -127,7 +126,6 @@ sub startpoint {
 }
 
 sub usage {
-    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     print "Usage: dhcpd [options]\n\n";
     print " -b <ip>		ip address to bind (def: 0.0.0.0)\n";
     print " -sp <port>		port bind (def: 67)\n";

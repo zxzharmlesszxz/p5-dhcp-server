@@ -55,9 +55,7 @@ if ($@) {exit unless $@ =~ /^fakeexit/;};
 
 # generic signal handler to cause daemon to stop
 sub signal_handler {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     $RUNNING = 0;
     close($SOCKET_RCV);
     $_->kill('KILL')->detach() foreach threads->list();
@@ -65,9 +63,7 @@ sub signal_handler {
 }
 
 sub startpoint {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     if ($#ARGV == - 1) {
         usage();
         return;
@@ -84,7 +80,7 @@ sub startpoint {
     $DBPASS = 'dhcp';
     $THREADS_COUNT = 4;
     $PIDFILE = '/var/run/perl-dhcpd.pid';
-    $DEBUG = undef;
+    $DEBUG = 0;
     my $DAEMON = undef;
 
     GetOptions(
@@ -131,9 +127,7 @@ sub startpoint {
 }
 
 sub usage {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     print "Usage: dhcpd [options]\n\n";
     print " -b <ip>		ip address to bind (def: 0.0.0.0)\n";
     print " -sp <port>		port bind (def: 67)\n";
@@ -161,9 +155,7 @@ sub logger {
 }
 
 sub daemonize {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     delete @ENV{qw(IFS CDPATH ENV BASH_ENV)}; # Make %ENV safer
     #setuid(65534)		or die "Can't set uid: $!\n"; # nobody
 
@@ -179,9 +171,7 @@ sub daemonize {
 }
 
 sub main {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     if (defined($BIND_ADDR) == 0) {return;}
 
     # write PID to file
@@ -228,9 +218,7 @@ sub main {
 }
 
 sub request_loop {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     my ($buf, $fromaddr, $dhcpreq); # recv data
     my $dbh; # database connect
     my ($t0, $t1, $td); # perfomance data
@@ -360,9 +348,7 @@ sub request_loop {
 }
 
 sub thread_exit($) {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     my $tid = threads->tid(); # thread ID
 
     logger("Thread ($tid): END code: " . $_[0]);
@@ -372,9 +358,7 @@ sub thread_exit($) {
 }
 
 sub send_reply {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $fromaddr = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -445,9 +429,7 @@ sub send_reply {
 
 # Generate responce DHCP packet from request DHCP packet
 sub GenDHCPRespPkt {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dhcpreq = $_[0];
 
     my $dhcpresp = new Net::DHCP::Packet(Op => BOOTREPLY(),
@@ -469,9 +451,7 @@ sub GenDHCPRespPkt {
 }
 
 sub BuffToHEX($) {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     my $buf = shift;
 
     #$buf =~ s/([[:^print:]])/ sprintf q[\x%02X], ord $1 /eg;  # printable text
@@ -482,9 +462,7 @@ sub BuffToHEX($) {
 
 # convert RelayAgent options to human readable
 sub unpackRelayAgent(%) {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     my @SubOptions = @_;
     my $buf;
 
@@ -497,9 +475,7 @@ sub unpackRelayAgent(%) {
 
 # get relay agent options from dhcp packet
 sub GetRelayAgentOptions($$$$$$) {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dhcpreq = $_[0];
     #my $dhcp_opt82_vlan_id = $_[1];
     #my $dhcp_opt82_unit_id = $_[2];
@@ -565,9 +541,7 @@ sub GetRelayAgentOptions($$$$$$) {
 
 # change mac addr format from "abcdefg" to "a:b:c:d:e:f:g"
 sub FormatMAC {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     $_[0] =~ /([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})?([0-9a-f]{2})/i;
     return (lc(join(':', $1, $2, $3, $4, $5, $6)));
 }
@@ -580,9 +554,7 @@ sub FormatMAC {
 # mask to bits
 # http://milanweb.net/uni/old/scripting.html
 sub subnetBits {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     my $m = unpack("N", pack("C4", split(/\./, $_[0]))); # parseIPtoNumber
     my $v = pack("L", $m);
     my $bcnt = 0;
@@ -605,9 +577,7 @@ sub subnetBits {
 # Syntax: mk_classless_routes_bin_mask($net, $mask, $gw)
 # example: mk_classless_routes_bin_mask('192.168.1.0', '255.255.255.0', '192.168.0.254')
 sub mk_classless_routes_bin_mask {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $net = $_[0];
     #my $mask = $_[1];
     #my $gw = $_[2];
@@ -618,9 +588,7 @@ sub mk_classless_routes_bin_mask {
 # Syntax: mk_classless_routes_bin_prefixlen($net, $prefixlen, $gw)
 # example: mk_classless_routes_bin_prefixlen('192.168.1.0', 24, '192.168.0.254')
 sub mk_classless_routes_bin_prefixlen {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $net = $_[0];
     #my $prefixlen = $_[1];
     #my $gw = $_[2];
@@ -642,9 +610,7 @@ sub mk_classless_routes_bin_prefixlen {
 }
 
 sub handle_discover {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -667,9 +633,7 @@ sub handle_discover {
 }
 
 sub handle_request {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -698,9 +662,7 @@ sub handle_request {
 }
 
 sub handle_decline {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -709,9 +671,7 @@ sub handle_decline {
 }
 
 sub handle_release {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -720,9 +680,7 @@ sub handle_release {
 }
 
 sub handle_inform {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $fromaddr  = $_[1];
     #my $dhcpreq = $_[2];
@@ -740,9 +698,7 @@ sub handle_inform {
 }
 
 sub static_data_to_reply {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dhcpreqparams = $_[0];
     #my $dhcpresp = $_[1];
 
@@ -776,9 +732,7 @@ sub static_data_to_reply {
 }
 
 sub db_get_requested_data {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -872,9 +826,7 @@ sub db_get_requested_data {
 }
 
 sub db_data_to_reply {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $result = $_[0];
     #my $dhcpreqparams = $_[1];
     #my $dhcpresp = $_[2];
@@ -927,9 +879,7 @@ sub db_data_to_reply {
 }
 
 sub db_get_routing {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreqparams = $_[1];
     #my $subnet_id = $_[2];
@@ -1009,9 +959,7 @@ sub db_get_routing {
 }
 
 sub db_lease_offered {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     #my $dhcpresp = $_[2];
@@ -1034,9 +982,7 @@ sub db_lease_offered {
 }
 
 sub db_lease_nak {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
@@ -1052,9 +998,7 @@ sub db_lease_nak {
 }
 
 sub db_lease_decline {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
@@ -1120,9 +1064,7 @@ sub db_lease_decline {
 }
 
 sub db_lease_release {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth);
@@ -1143,9 +1085,7 @@ sub db_lease_release {
 }
 
 sub db_lease_success {
-    if ($DEBUG > 1) {
-        logger("Function: " . (caller(0))[3]);
-    }
+    logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dbh = $_[0];
     #my $dhcpreq = $_[1];
     my ($mac, $sth, $result);

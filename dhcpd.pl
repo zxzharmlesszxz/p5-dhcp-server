@@ -20,7 +20,6 @@ use warnings;
 use threads;
 use threads::shared;
 use Socket;
-use IO::Socket::INET;
 use Switch;
 use DBI;
 use Net::DHCP::Packet;
@@ -190,14 +189,8 @@ sub main {
     }
 
     # open listening socket
-    $SOCKET_RCV = IO::Socket::INET->new(
-        LocalAddr	=> $BIND_ADDR,
-        LocalPort	=> $SERVER_PORT,
-        Proto		=> 'udp',
-        Blocking	=> 0
-    );
-#    socket($SOCKET_RCV, PF_INET, SOCK_DGRAM, getprotobyname('udp')) || die "Socket creation error: $@\n";
-#    bind($SOCKET_RCV, sockaddr_in(c, inet_aton($BIND_ADDR))) || die "bind: $!";
+    socket($SOCKET_RCV, PF_INET, SOCK_DGRAM, getprotobyname('udp')) || die "Socket creation error: $@\n";
+    bind($SOCKET_RCV, sockaddr_in(c, inet_aton($BIND_ADDR))) || die "bind: $!";
 
     # start threads
     for my $i (1 .. ($THREADS_COUNT - 1)) {

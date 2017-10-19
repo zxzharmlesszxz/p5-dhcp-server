@@ -20,7 +20,7 @@ use warnings;
 use threads;
 use threads::shared;
 use Socket;
-use Switch;
+#use Switch;
 use DBI;
 use Net::DHCP::Packet;
 use Net::DHCP::Constants;
@@ -306,12 +306,19 @@ sub request_loop {
             db_log_detailed($dbh, $dhcpreq);
 
             # handle packet
-            switch ($dhcpreq->getOptionValue(DHO_DHCP_MESSAGE_TYPE())) {
-                case DHCPDISCOVER {handle_discover($dbh, $fromaddr, $dhcpreq);}#-> DHCPOFFER
-                case DHCPREQUEST {handle_request($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK/DHCPNAK
-                case DHCPDECLINE {handle_decline($dbh, $fromaddr, $dhcpreq);}
-                case DHCPRELEASE {handle_release($dbh, $fromaddr, $dhcpreq);}
-                case DHCPINFORM {handle_inform($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK
+#            switch ($dhcpreq->getOptionValue(DHO_DHCP_MESSAGE_TYPE())) {
+#                case DHCPDISCOVER {handle_discover($dbh, $fromaddr, $dhcpreq);}#-> DHCPOFFER
+#                case DHCPREQUEST {handle_request($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK/DHCPNAK
+#                case DHCPDECLINE {handle_decline($dbh, $fromaddr, $dhcpreq);}
+#                case DHCPRELEASE {handle_release($dbh, $fromaddr, $dhcpreq);}
+#                case DHCPINFORM {handle_inform($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK
+#            }
+            given ($dhcpreq->getOptionValue(DHO_DHCP_MESSAGE_TYPE())) {
+                when ($_ == DHCPDISCOVER) {handle_discover($dbh, $fromaddr, $dhcpreq);}#-> DHCPOFFER
+                when ($_ == DHCPREQUEST) {handle_request($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK/DHCPNAK
+                when ($_ == DHCPDECLINE) {handle_decline($dbh, $fromaddr, $dhcpreq);}
+                when ($_ == DHCPRELEASE) {handle_release($dbh, $fromaddr, $dhcpreq);}
+                when ($_ == DHCPINFORM) {handle_inform($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK
             }
 
             if (defined($DEBUG)) {
@@ -483,8 +490,42 @@ sub GetRelayAgentOptions($$$$$$) {
     logger("RelayAgent: " . @RelayAgent);
 
     for (my $i = 0; defined($RelayAgent[$i]); $i += 2) {
-        switch ($RelayAgent[$i]){
-            case 1 {
+        #switch ($RelayAgent[$i]){
+        #    case 1 {
+        #        # Circuit ID
+        #        logger("RelayAgent Circuit ID: " . $RelayAgent[($i + 1)]);
+        #        next if (length($RelayAgent[($i + 1)]) < 4);
+        #        # first bytes must be: 00 04
+        #        #$_[1] = unpack('n', substr($RelayAgent[($i + 1)], -4, 2)); # may be 's'
+        #        $RelayAgent[($i + 1)] =~ /(\d+)(?=\ )/;
+        #        $_[1] = $1;
+        #        logger("RelayAgent VLan: " . $_[1]);
+        #        #$_[2] = unpack('C', substr($RelayAgent[($i + 1)], -2, 1));
+        #        $RelayAgent[($i + 1)] =~ /(\d+)(?=\/\d+:)/;
+        #        $_[2] = $1;
+        #        logger("RelayAgent Unit: " . $_[2]);
+        #        #$_[3] = unpack('C', substr($RelayAgent[($i + 1)], -1, 1));
+        #        $RelayAgent[($i + 1)] =~ /(\d+)(?=:)/;
+        #        $_[3] = $1;
+        #        logger("RelayAgent Port: " . $_[3]);
+        #    }
+        #    case 2 {
+        #        # Remote ID
+        #        next if (length($RelayAgent[($i + 1)]) < 6);
+        #        # first bytes must be: 00 06 or 01 06 or 02 xx
+        #        # first digit - format/data type, second - len
+        #        $_[4] = FormatMAC(unpack("H*", substr($RelayAgent[($i + 1)], - 6, 6)));
+        #        logger("RelayAgent 4: " . $_[4]);
+        #        # 02 xx - contain vlan num, undone
+        #    }
+        #    case 6 {
+        #        # Subscriber ID
+        #        $_[5] = $RelayAgent[($i + 1)];
+        #        logger("RelayAgent 5: " . $_[5]);
+        #    }
+        #}
+        given ($RelayAgent[$i]){
+            when ($_ == 1) {
                 # Circuit ID
                 logger("RelayAgent Circuit ID: " . $RelayAgent[($i + 1)]);
                 next if (length($RelayAgent[($i + 1)]) < 4);
@@ -502,7 +543,7 @@ sub GetRelayAgentOptions($$$$$$) {
                 $_[3] = $1;
                 logger("RelayAgent Port: " . $_[3]);
             }
-            case 2 {
+            when ($_ == 2) {
                 # Remote ID
                 next if (length($RelayAgent[($i + 1)]) < 6);
                 # first bytes must be: 00 06 or 01 06 or 02 xx
@@ -511,7 +552,7 @@ sub GetRelayAgentOptions($$$$$$) {
                 logger("RelayAgent 4: " . $_[4]);
                 # 02 xx - contain vlan num, undone
             }
-            case 6 {
+            when ($_ == 6) {
                 # Subscriber ID
                 $_[5] = $RelayAgent[($i + 1)];
                 logger("RelayAgent 5: " . $_[5]);

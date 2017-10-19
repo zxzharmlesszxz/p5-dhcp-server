@@ -20,6 +20,7 @@ use warnings;
 use threads;
 use threads::shared;
 use Socket;
+use IO::Socket::INET;
 use Switch;
 use DBI;
 use Net::DHCP::Packet;
@@ -37,16 +38,15 @@ binmode(STDOUT, ':utf8');
 my ($BIND_ADDR, $SERVER_PORT, $CLIENT_PORT, $MIRROR, $DHCP_SERVER_ID, $THREADS_COUNT, $DBDATASOURCE, $DBLOGIN, $DBPASS, $PIDFILE, $DEBUG);
 
 # global variables
-my ($RUNNING, $ADDR_BCAST, $ADDR_MIRROR, $SOCKET_RCV);
-
-share($RUNNING);
+my $RUNNING :shared;
+my ($ADDR_BCAST, $ADDR_MIRROR, $SOCKET_RCV);
 #share($SOCKET_RCV);
 
 &startpoint();
 
 # this keeps the program alive or something after exec'ing perl scripts
-END(){}
-BEGIN(){}
+END{}
+BEGIN{}
 {
     no warnings; *CORE::GLOBAL::exit = sub {die "fakeexit\nrc=" . shift() . "\n";};
 };
@@ -99,9 +99,9 @@ sub startpoint {
     );
 
     # untainte input
-    if ($BIND_ADDR =~ /^(.*)$/) {$BIND_ADDR = $1;}
-    if ($DHCP_SERVER_ID =~ /^(.*)$/) {$DHCP_SERVER_ID = $1;}
-    if ($PIDFILE =~ /^(.*)$/) {$PIDFILE = $1;}
+    if ($BIND_ADDR =~ /^(.*)$/) {$BIND_ADDR = \1;}
+    if ($DHCP_SERVER_ID =~ /^(.*)$/) {$DHCP_SERVER_ID = \1;}
+    if ($PIDFILE =~ /^(.*)$/) {$PIDFILE = \1;}
 
     if (defined($DHCP_SERVER_ID) == 0) {
         usage();
@@ -192,7 +192,8 @@ sub main {
     }
 
     # open listening socket
-    socket($SOCKET_RCV, PF_INET, SOCK_DGRAM, getprotobyname('udp')) || die "Socket creation error: $@\n";
+    #$SOCKET_RCV = IO::Socket::INET->new();
+    socket($SOCKET_RCV, PF_INET, getprotobyname('udp')|SOCK_NONBLOCK) || die "Socket creation error: $@\n";
     bind($SOCKET_RCV, sockaddr_in($SERVER_PORT, inet_aton($BIND_ADDR))) || die "bind: $!";
 
     # start threads
@@ -274,7 +275,7 @@ sub request_loop {
             }
 
             # parce data to dhcp structes
-            $dhcpreq = new Net::DHCP::Packet($buf);
+            $dhcpreq = Net::DHCP::Packet->new($buf);
 
             # filter bad params in head
             next if ($dhcpreq->op() != BOOTREQUEST || $dhcpreq->isDhcp() == 0);
@@ -432,7 +433,7 @@ sub GenDHCPRespPkt {
     logger("Function: " . (caller(0))[3]) if ($DEBUG > 1);
     #my $dhcpreq = $_[0];
 
-    my $dhcpresp = new Net::DHCP::Packet(Op => BOOTREPLY(),
+    my $dhcpresp = Net::DHCP::Packet->new(Op => BOOTREPLY(),
             Htype                           => $_[0]->htype(),
             Hlen                            => $_[0]->hlen(),
             # Hops                          => $_[0]->hops(), # - not copyed in responce
@@ -726,9 +727,7 @@ sub static_data_to_reply {
         $_[1]->addOptionRaw(DHO_VENDOR_ENCAPSULATED_OPTIONS(), "\x01\x04\x00\x00\x00\x02\x02\x04\x00\x00\x00\x01\xff");
     }
 
-    if ($DEBUG > 1) {
-        print STDOUT Dumper($_[1]);
-    }
+    print STDOUT Dumper($_[1]) if ($DEBUG > 2);
 }
 
 sub db_get_requested_data {
@@ -759,11 +758,13 @@ sub db_get_requested_data {
 
     $sth = $_[0]->prepare("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` AND `subnets`.`gateway` = '$ipaddr' LIMIT 1;");
 
-    if ($DEBUG > 1) {
+    if ($DEBUG > 2) {
         logger($_[1]->toString());
         print STDOUT Dumper($_[2]);
+    }
+    if ($DEBUG > 1) {
         logger("Got a packet src = $ipaddr:$port");
-        logger("SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` AND `subnets`.`gateway` = '$ipaddr' LIMIT 1;");
+        logger("SQL: SELECT * FROM `clients`, `subnets` WHERE `clients`.`mac` = '$mac' AND `clients`.`subnet_id` = `subnets`.`subnet_id` AND `subnets`.`gateway` = '$ipaddr' LIMIT 1;");
     }
     $sth->execute();
     if ($sth->rows()) {
@@ -921,10 +922,8 @@ sub db_get_routing {
 
     $sth = $_[0]->prepare("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
 
-    if ($DEBUG > 1) {
-        print STDOUT Dumper($_[3]);
-        logger("SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;");
-    }
+    logger("SQL: SELECT `destination`, `mask` `gateway` FROM `subnets_routes` WHERE `subnet_id` = '$_[2]' LIMIT 30;") if ($DEBUG > 1);
+    print STDOUT Dumper($_[3]) if ($DEBUG > 2);
 
     $sth->execute();
     if ($sth->rows()) {
@@ -967,13 +966,10 @@ sub db_lease_offered {
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-    ####
     $sth = $_[0]->prepare("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
 
-    if ($DEBUG > 1) {
-        print STDOUT Dumper($_[2]);
-        logger("UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';");
-    }
+    logger("SQL: UPDATE `ips` SET `mac` = '$mac', `lease_time` = UNIX_TIMESTAMP()+3600 WHERE `ip` = '".$_[2]->yiaddr()."';") if ($DEBUG > 1);
+    print STDOUT Dumper($_[3]) if ($DEBUG > 2);
 
     $sth->execute();
     $sth->finish();
@@ -989,8 +985,9 @@ sub db_lease_nak {
 
     # change hw addr format
     $mac = FormatMAC(substr($_[1]->chaddr(), 0, (2 * $_[1]->hlen())));
-    ####
     $sth = $_[0]->prepare("");
+    logger("SQL: lease nak") if ($DEBUG > 1);
+    print STDOUT Dumper($_[1]) if ($DEBUG > 2);
     $sth->execute();
     $sth->finish();
 
@@ -1039,23 +1036,9 @@ sub db_lease_decline {
     $dhcp_vendor_class = defined($_[1]->getOptionRaw(DHO_VENDOR_CLASS_IDENTIFIER())) ? $_[1]->getOptionValue(DHO_VENDOR_CLASS_IDENTIFIER()) : '';
     $dhcp_user_class = defined($_[1]->getOptionRaw(DHO_USER_CLASS())) ? $_[1]->getOptionRaw(DHO_USER_CLASS()) : '';
 
-    ####
-    $sth = $_[0]->prepare(
-        "INSERT INTO
-            `dhcp_log`
-            (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`,
-            `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`,
-            `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`)
-         VALUES
-            (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname',
-            '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id',
-            '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');
-        "
-    );
+    $sth = $_[0]->prepare("INSERT INTO `dhcp_log` (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`, `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`, `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`) VALUES (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname', '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id', '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');");
 
-    if ($DEBUG > 1) {
-        logger("INSERT INTO `dhcp_log` (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`, `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`, `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`) VALUES (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname', '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id', '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');");
-    }
+    logger("SQL: INSERT INTO `dhcp_log` (`created`,`client_mac`,`client_ip`,`gateway_ip`,`client_ident`,`requested_ip`,`hostname`, `dhcp_vendor_class`,`dhcp_user_class`,`dhcp_opt82_chasis_id`,`dhcp_opt82_unit_id`, `dhcp_opt82_port_id`, `dhcp_opt82_vlan_id`, `dhcp_opt82_subscriber_id`) VALUES (NOW(),'$mac','$client_ip','$gateway_ip','$client_ident','$requested_ip','$hostname', '$dhcp_vendor_class','$dhcp_user_class','$dhcp_opt82_chasis_id','$dhcp_opt82_unit_id', '$dhcp_opt82_port_id','$dhcp_opt82_vlan_id','$dhcp_opt82_subscriber_id');") if ($DEBUG > 1);
 
     $sth->execute();
     $sth->finish();
@@ -1074,9 +1057,7 @@ sub db_lease_release {
     ####
     $sth = $_[0]->prepare("UPDATE `ips` SET `lease_time` = '', `mac` = NULL WHERE `mac` ='$mac';");
 
-    if ($DEBUG > 1) {
-        logger("UPDATE `ips` SET `lease_time` = '', `mac` = NULL WHERE `mac` ='$mac';");
-    }
+    logger("SQL: UPDATE `ips` SET `lease_time` = '', `mac` = NULL WHERE `mac` ='$mac';") if ($DEBUG > 1);
 
     $sth->execute();
     $sth->finish();
@@ -1115,9 +1096,7 @@ sub db_lease_success {
 
     $sth = $_[0]->prepare("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = '$mac' AND`subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");
 
-    if ($DEBUG > 1) {
-        logger("UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = '$mac' AND `subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));");
-    }
+    logger("SQL: UPDATE `ips` SET `lease_time` = UNIX_TIMESTAMP()+3600, `mac` ='$mac' WHERE `ip` = (SELECT `ip` FROM `clients` WHERE `mac` = '$mac' AND `subnet_id` = (SELECT `subnet_id` FROM `subnets` WHERE `vlan_id` = $dhcp_opt82_vlan_id AND `type` != 'guest'));") if ($DEBUG > 1);
 
     $sth->execute();
     $sth->finish();

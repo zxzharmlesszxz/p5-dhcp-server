@@ -190,7 +190,7 @@ sub main {
 
     # open listening socket
     socket($SOCKET_RCV, PF_INET, SOCK_DGRAM, getprotobyname('udp')) || die "Socket creation error: $@\n";
-    bind($SOCKET_RCV, sockaddr_in(c, inet_aton($BIND_ADDR))) || die "bind: $!";
+    bind($SOCKET_RCV, sockaddr_in($SERVER_PORT, inet_aton($BIND_ADDR))) || die "bind: $!";
 
     # start threads
     for my $i (1 .. ($THREADS_COUNT - 1)) {

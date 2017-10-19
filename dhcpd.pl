@@ -295,37 +295,23 @@ sub request_loop {
             if (defined($DEBUG)) {
                 my ($port, $addr) = unpack_sockaddr_in($fromaddr);
                 my $ipaddr = inet_ntoa($addr);
-                logger("Thread $tid: Got a packet src = $ipaddr:$port length = " . length($buf));
+                # change hw addr format
+                my $mac = FormatMAC(substr($dhcpreq->chaddr(), 0, (2 * $dhcpreq->hlen())));
+                logger("Thread $tid: Got a packet src = $ipaddr:$port mac = $mac length = " . length($buf));
                 if ($DEBUG > 1) {
                     logger($dhcpreq->toString());
                 }
             }
 
+            db_log_detailed($dbh, $dhcpreq);
+
             # handle packet
             switch ($dhcpreq->getOptionValue(DHO_DHCP_MESSAGE_TYPE())) {
-                case DHCPDISCOVER {
-                    #-> DHCPOFFER
-                    db_log_detailed($dbh, $dhcpreq);
-                    handle_discover($dbh, $fromaddr, $dhcpreq);
-                }
-                case DHCPREQUEST {
-                    #-> DHCPACK/DHCPNAK
-                    db_log_detailed($dbh, $dhcpreq);
-                    handle_request($dbh, $fromaddr, $dhcpreq);
-                }
-                case DHCPDECLINE {
-                    db_log_detailed($dbh, $dhcpreq);
-                    handle_decline($dbh, $fromaddr, $dhcpreq);
-                }
-                case DHCPRELEASE {
-                    db_log_detailed($dbh, $dhcpreq);
-                    handle_release($dbh, $fromaddr, $dhcpreq);
-                }
-                case DHCPINFORM {
-                    #-> DHCPACK
-                    db_log_detailed($dbh, $dhcpreq);
-                    handle_inform($dbh, $fromaddr, $dhcpreq);
-                }
+                case DHCPDISCOVER {handle_discover($dbh, $fromaddr, $dhcpreq);}#-> DHCPOFFER
+                case DHCPREQUEST {handle_request($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK/DHCPNAK
+                case DHCPDECLINE {handle_decline($dbh, $fromaddr, $dhcpreq);}
+                case DHCPRELEASE {handle_release($dbh, $fromaddr, $dhcpreq);}
+                case DHCPINFORM {handle_inform($dbh, $fromaddr, $dhcpreq);}#-> DHCPACK
             }
 
             if (defined($DEBUG)) {

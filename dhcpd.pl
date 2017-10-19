@@ -98,9 +98,9 @@ sub startpoint {
     );
 
     # untainte input
-    if ($BIND_ADDR =~ /^(.*)$/) {$BIND_ADDR = \1;}
-    if ($DHCP_SERVER_ID =~ /^(.*)$/) {$DHCP_SERVER_ID = \1;}
-    if ($PIDFILE =~ /^(.*)$/) {$PIDFILE = \1;}
+    if ($BIND_ADDR =~ /^(.*)$/) {$BIND_ADDR = $1;}
+    if ($DHCP_SERVER_ID =~ /^(.*)$/) {$DHCP_SERVER_ID = $1;}
+    if ($PIDFILE =~ /^(.*)$/) {$PIDFILE = $1;}
 
     if (defined($DHCP_SERVER_ID) == 0) {
         usage();
@@ -190,7 +190,7 @@ sub main {
     }
 
     # open listening socket
-    #$SOCKET_RCV = IO::Socket::INET->new();
+    $SOCKET_RCV = IO::Socket::INET->new();
     socket($SOCKET_RCV, PF_INET, SOCK_DGRAM, getprotobyname('udp')) || die "Socket creation error: $@\n";
     bind($SOCKET_RCV, sockaddr_in($SERVER_PORT, inet_aton($BIND_ADDR))) || die "bind: $!";
 

@@ -193,7 +193,7 @@ sub main {
 
     # open listening socket
     #$SOCKET_RCV = IO::Socket::INET->new();
-    socket($SOCKET_RCV, PF_INET, getprotobyname('udp')|SOCK_NONBLOCK) || die "Socket creation error: $@\n";
+    socket($SOCKET_RCV, PF_INET, SOCK_DGRAM|SOCK_NONBLOCK, getprotobyname('udp')) || die "Socket creation error: $@\n";
     bind($SOCKET_RCV, sockaddr_in($SERVER_PORT, inet_aton($BIND_ADDR))) || die "bind: $!";
 
     # start threads

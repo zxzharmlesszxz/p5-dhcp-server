@@ -20,7 +20,6 @@ use warnings;
 use threads;
 use threads::shared;
 use Socket;
-#use Switch;
 use DBI;
 use Net::DHCP::Packet;
 use Net::DHCP::Constants;

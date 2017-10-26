@@ -28,6 +28,7 @@ use POSIX qw(setsid setuid strftime :signal_h);
 use Getopt::Long;
 use Sys::Syslog;
 use Data::Dumper;
+use 5.010;
 #require 'sys/syscall.ph';
 
 binmode(STDOUT, ':utf8');

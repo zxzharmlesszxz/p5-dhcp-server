@@ -29,6 +29,7 @@ use Getopt::Long;
 use Sys::Syslog;
 use Data::Dumper;
 use 5.010;
+no if $] >= 5.018, warnings => "experimental::smartmatch";
 #require 'sys/syscall.ph';
 
 binmode(STDOUT, ':utf8');
